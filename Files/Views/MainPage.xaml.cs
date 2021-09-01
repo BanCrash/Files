@@ -1,5 +1,5 @@
 ﻿using Files.DataModels.NavigationControlItems;
-using Files.Dialogs;
+using Files.Extensions;
 using Files.Filesystem;
 using Files.Helpers;
 using Files.UserControls;
@@ -8,21 +8,18 @@ using Files.ViewModels;
 using Microsoft.Toolkit.Mvvm.Input;
 using Microsoft.Toolkit.Uwp;
 using System;
-using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows.Input;
-using Windows.ApplicationModel.AppService;
 using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.Resources.Core;
-using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
-using Files.Extensions;
 
 namespace Files.Views
 {
@@ -42,7 +39,7 @@ namespace Files.Views
 
         public SidebarViewModel SidebarAdaptiveViewModel = new SidebarViewModel();
 
-        public StatusCenterViewModel StatusCenterViewModel => App.StatusCenterViewModel;
+        public OngoingTasksViewModel OngoingTasksViewModel => App.OngoingTasksViewModel;
 
         public ICommand ToggleFullScreenAcceleratorCommand { get; private set; }
 
@@ -169,8 +166,8 @@ namespace Files.Views
         {
             if (StatusBarControl != null)
             {
-                StatusBarControl.DirectoryPropertiesViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePane.SlimContentPage?.DirectoryPropertiesViewModel;
-                StatusBarControl.SelectedItemsPropertiesViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePane.SlimContentPage?.SelectedItemsPropertiesViewModel;
+                StatusBarControl.DirectoryPropertiesViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePaneOrColumn.SlimContentPage?.DirectoryPropertiesViewModel;
+                StatusBarControl.SelectedItemsPropertiesViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePaneOrColumn.SlimContentPage?.SelectedItemsPropertiesViewModel;
             }
         }
 
@@ -178,12 +175,12 @@ namespace Files.Views
         {
             if (NavToolbar != null)
             {
-                NavToolbar.ViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePane.NavToolbarViewModel;
+                NavToolbar.ViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePaneOrColumn.NavToolbarViewModel;
             }
 
             if (InnerNavigationToolbar != null)
             {
-                InnerNavigationToolbar.ViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePane.NavToolbarViewModel;
+                InnerNavigationToolbar.ViewModel = SidebarAdaptiveViewModel.PaneHolder?.ActivePaneOrColumn.NavToolbarViewModel;
                 InnerNavigationToolbar.ShowMultiPaneControls = SidebarAdaptiveViewModel.PaneHolder?.IsMultiPaneEnabled ?? false;
                 InnerNavigationToolbar.IsMultiPaneActive = SidebarAdaptiveViewModel.PaneHolder?.IsMultiPaneActive ?? false;
             }
@@ -194,7 +191,7 @@ namespace Files.Views
             LoadPreviewPaneChanged();
             if (PreviewPane != null)
             {
-                PreviewPane.Model = SidebarAdaptiveViewModel.PaneHolder?.ActivePane.SlimContentPage?.PreviewPaneViewModel;
+                PreviewPane.Model = SidebarAdaptiveViewModel.PaneHolder?.ActivePaneOrColumn.SlimContentPage?.PreviewPaneViewModel;
             }
         }
 
@@ -315,13 +312,13 @@ namespace Files.Views
             {
                 _ = VisualStateManager.GoToState(this, nameof(CollapseSearchBoxState), true);
             }
-            
-            if(Window.Current.Bounds.Width < MinimalSidebarAdaptiveTrigger.MinWindowWidth)
+
+            if (Window.Current.Bounds.Width < MinimalSidebarAdaptiveTrigger.MinWindowWidth)
             {
                 _ = VisualStateManager.GoToState(this, nameof(MinimalSidebarState), true);
             }
-            
-            if(Window.Current.Bounds.Width < CollapseHorizontalTabViewTrigger.MinWindowWidth)
+
+            if (Window.Current.Bounds.Width < CollapseHorizontalTabViewTrigger.MinWindowWidth)
             {
                 _ = VisualStateManager.GoToState(this, nameof(HorizontalTabViewCollapsed), true);
             }
@@ -472,6 +469,7 @@ namespace Files.Views
         }
 
         private bool isCompactOverlay;
+
         public bool IsCompactOverlay
         {
             get => isCompactOverlay;

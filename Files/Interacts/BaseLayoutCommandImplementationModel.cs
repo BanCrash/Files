@@ -2,11 +2,11 @@
 using Files.Dialogs;
 using Files.Enums;
 using Files.Filesystem;
+using Files.Filesystem.StorageItems;
 using Files.Helpers;
 using Files.ViewModels;
 using Files.ViewModels.Dialogs;
 using Files.Views;
-using Files.Views.LayoutModes;
 using Microsoft.Toolkit.Uwp;
 using System;
 using System.Collections.Generic;
@@ -378,16 +378,16 @@ namespace Files.Interacts
                             return;
                         }
                     }
-                    else if (item.PrimaryItemAttribute == StorageItemTypes.Folder)
+                    else if (item.PrimaryItemAttribute == StorageItemTypes.Folder && !item.IsZipItem)
                     {
-                        if (await StorageItemHelpers.ToStorageItem<StorageFolder>(item.ItemPath, associatedInstance) is StorageFolder folder)
+                        if (await StorageItemHelpers.ToStorageItem<BaseStorageFolder>(item.ItemPath, associatedInstance) is BaseStorageFolder folder)
                         {
                             items.Add(folder);
                         }
                     }
                     else
                     {
-                        if (await StorageItemHelpers.ToStorageItem<StorageFile>(item.ItemPath, associatedInstance) is StorageFile file)
+                        if (await StorageItemHelpers.ToStorageItem<BaseStorageFile>(item.ItemPath, associatedInstance) is BaseStorageFile file)
                         {
                             items.Add(file);
                         }
@@ -412,7 +412,7 @@ namespace Files.Interacts
                     dataRequest.Data.Properties.Description = "ShareDialogMultipleItemsDescription".GetLocalized();
                 }
 
-                dataRequest.Data.SetStorageItems(items);
+                dataRequest.Data.SetStorageItems(items, false);
                 dataRequestDeferral.Complete();
 
                 // TODO: Unhook the event somewhere
@@ -517,7 +517,7 @@ namespace Files.Interacts
             }
         }
 
-        public virtual async void DragOver(DragEventArgs e)
+        public virtual async Task DragOver(DragEventArgs e)
         {
             var deferral = e.GetDeferral();
 
@@ -535,6 +535,7 @@ namespace Files.Interacts
                 e.Handled = true;
 
                 var (handledByFtp, draggedItems) = await Filesystem.FilesystemHelpers.GetDraggedStorageItems(e.DataView);
+                draggedItems ??= new List<IStorageItemWithPath>();
 
                 var pwd = associatedInstance.FilesystemViewModel.WorkingDirectory.TrimPath();
                 var folderName = (Path.IsPathRooted(pwd) && Path.GetPathRoot(pwd) == pwd) ? Path.GetPathRoot(pwd) : Path.GetFileName(pwd);
@@ -584,6 +585,12 @@ namespace Files.Interacts
                         e.DragUIOverride.Caption = string.Format("MoveToFolderCaptionText".GetLocalized(), folderName);
                         e.AcceptedOperation = DataPackageOperation.Move;
                     }
+                    else if (draggedItems.Any(x => x.Item is ZipStorageFile || x.Item is ZipStorageFolder)
+                        || ZipStorageFolder.IsZipPath(pwd))
+                    {
+                        e.DragUIOverride.Caption = string.Format("CopyToFolderCaptionText".GetLocalized(), folderName);
+                        e.AcceptedOperation = DataPackageOperation.Copy;
+                    }
                     else if (draggedItems.AreItemsInSameDrive(associatedInstance.FilesystemViewModel.WorkingDirectory))
                     {
                         e.DragUIOverride.Caption = string.Format("MoveToFolderCaptionText".GetLocalized(), folderName);
@@ -600,7 +607,7 @@ namespace Files.Interacts
             deferral.Complete();
         }
 
-        public virtual async void Drop(DragEventArgs e)
+        public virtual async Task Drop(DragEventArgs e)
         {
             var deferral = e.GetDeferral();
 
@@ -630,7 +637,7 @@ namespace Files.Interacts
 
         public async void DecompressArchive()
         {
-            StorageFile archive = await StorageItemHelpers.ToStorageItem<StorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
+            BaseStorageFile archive = await StorageItemHelpers.ToStorageItem<BaseStorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
 
             if (archive != null)
             {
@@ -649,7 +656,7 @@ namespace Files.Interacts
                     }
 
                     CancellationTokenSource extractCancellation = new CancellationTokenSource();
-                    PostedStatusBanner banner = App.StatusCenterViewModel.PostOperationBanner(
+                    PostedStatusBanner banner = App.OngoingTasksViewModel.PostOperationBanner(
                         string.Empty,
                         "ExtractingArchiveText".GetLocalized(),
                         0,
@@ -657,13 +664,17 @@ namespace Files.Interacts
                         FileOperationType.Extract,
                         extractCancellation);
 
-                    StorageFolder destinationFolder = decompressArchiveViewModel.DestinationFolder;
+                    BaseStorageFolder destinationFolder = decompressArchiveViewModel.DestinationFolder;
                     string destinationFolderPath = decompressArchiveViewModel.DestinationFolderPath;
 
                     if (destinationFolder == null)
                     {
-                        StorageFolder parentFolder = await StorageItemHelpers.ToStorageItem<StorageFolder>(Path.GetDirectoryName(archive.Path));
-                        destinationFolder = await parentFolder.CreateFolderAsync(Path.GetFileName(destinationFolderPath), CreationCollisionOption.GenerateUniqueName);
+                        BaseStorageFolder parentFolder = await StorageItemHelpers.ToStorageItem<BaseStorageFolder>(Path.GetDirectoryName(archive.Path));
+                        destinationFolder = await FilesystemTasks.Wrap(() => parentFolder.CreateFolderAsync(Path.GetFileName(destinationFolderPath), CreationCollisionOption.GenerateUniqueName).AsTask());
+                    }
+                    if (destinationFolder == null)
+                    {
+                        return; // Could not create dest folder
                     }
 
                     Stopwatch sw = new Stopwatch();
@@ -676,7 +687,7 @@ namespace Files.Interacts
 
                     if (sw.Elapsed.TotalSeconds >= 6)
                     {
-                        App.StatusCenterViewModel.PostBanner(
+                        App.OngoingTasksViewModel.PostBanner(
                             "ExtractingCompleteText".GetLocalized(),
                             "ArchiveExtractionCompletedSuccessfullyText".GetLocalized(),
                             0,
@@ -694,20 +705,19 @@ namespace Files.Interacts
 
         public async void DecompressArchiveHere()
         {
-            StorageFile archive = await StorageItemHelpers.ToStorageItem<StorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
-            StorageFolder currentFolder = await StorageItemHelpers.ToStorageItem<StorageFolder>(associatedInstance.FilesystemViewModel.CurrentFolder.ItemPath);
+            BaseStorageFile archive = await StorageItemHelpers.ToStorageItem<BaseStorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
+            BaseStorageFolder currentFolder = await StorageItemHelpers.ToStorageItem<BaseStorageFolder>(associatedInstance.FilesystemViewModel.CurrentFolder.ItemPath);
 
             if (archive != null && currentFolder != null)
             {
                 CancellationTokenSource extractCancellation = new CancellationTokenSource();
-                PostedStatusBanner banner = App.StatusCenterViewModel.PostOperationBanner(
+                PostedStatusBanner banner = App.OngoingTasksViewModel.PostOperationBanner(
                     string.Empty,
                     "ExtractingArchiveText".GetLocalized(),
                     0,
                     ReturnResult.InProgress,
                     FileOperationType.Extract,
                     extractCancellation);
-
 
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
@@ -719,7 +729,7 @@ namespace Files.Interacts
 
                 if (sw.Elapsed.TotalSeconds >= 6)
                 {
-                    App.StatusCenterViewModel.PostBanner(
+                    App.OngoingTasksViewModel.PostBanner(
                         "ExtractingCompleteText".GetLocalized(),
                         "ArchiveExtractionCompletedSuccessfullyText".GetLocalized(),
                         0,
@@ -731,26 +741,25 @@ namespace Files.Interacts
 
         public async void DecompressArchiveToChildFolder()
         {
-            StorageFile archive = await StorageItemHelpers.ToStorageItem<StorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
-            StorageFolder currentFolder = await StorageItemHelpers.ToStorageItem<StorageFolder>(associatedInstance.FilesystemViewModel.CurrentFolder.ItemPath);
-            StorageFolder destinationFolder = null;
+            BaseStorageFile archive = await StorageItemHelpers.ToStorageItem<BaseStorageFile>(associatedInstance.SlimContentPage.SelectedItem.ItemPath);
+            BaseStorageFolder currentFolder = await StorageItemHelpers.ToStorageItem<BaseStorageFolder>(associatedInstance.FilesystemViewModel.CurrentFolder.ItemPath);
+            BaseStorageFolder destinationFolder = null;
 
             if (currentFolder != null)
             {
-                destinationFolder = await currentFolder.CreateFolderAsync(Path.GetFileNameWithoutExtension(archive.Path), CreationCollisionOption.OpenIfExists);
+                destinationFolder = await FilesystemTasks.Wrap(() => currentFolder.CreateFolderAsync(Path.GetFileNameWithoutExtension(archive.Path), CreationCollisionOption.OpenIfExists).AsTask());
             }
 
             if (archive != null && destinationFolder != null)
             {
                 CancellationTokenSource extractCancellation = new CancellationTokenSource();
-                PostedStatusBanner banner = App.StatusCenterViewModel.PostOperationBanner(
+                PostedStatusBanner banner = App.OngoingTasksViewModel.PostOperationBanner(
                     string.Empty,
                     "ExtractingArchiveText".GetLocalized(),
                     0,
                     ReturnResult.InProgress,
                     FileOperationType.Extract,
                     extractCancellation);
-
 
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
@@ -762,7 +771,7 @@ namespace Files.Interacts
 
                 if (sw.Elapsed.TotalSeconds >= 6)
                 {
-                    App.StatusCenterViewModel.PostBanner(
+                    App.OngoingTasksViewModel.PostBanner(
                         "ExtractingCompleteText".GetLocalized(),
                         "ArchiveExtractionCompletedSuccessfullyText".GetLocalized(),
                         0,

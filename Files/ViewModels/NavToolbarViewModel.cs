@@ -1,6 +1,8 @@
-﻿using Files.Filesystem;
+﻿using Files.Common;
+using Files.Enums;
+using Files.Filesystem;
+using Files.Filesystem.StorageItems;
 using Files.Helpers;
-using Files.Helpers.XamlHelpers;
 using Files.UserControls;
 using Files.Views;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
@@ -10,10 +12,8 @@ using Microsoft.Toolkit.Uwp.UI;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.ApplicationModel.DataTransfer;
@@ -23,13 +23,10 @@ using Windows.System;
 using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Files.Common;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Input;
 using static Files.UserControls.INavigationToolbar;
 using SearchBox = Files.UserControls.SearchBox;
-using Files.Interacts;
-using Files.Enums;
 
 namespace Files.ViewModels
 {
@@ -75,13 +72,13 @@ namespace Files.ViewModels
 
         public bool IsSortedAscending
         {
-            get => InstanceViewModel.FolderSettings.DirectorySortDirection == SortDirection.Ascending;
+            get => InstanceViewModel?.FolderSettings.DirectorySortDirection == SortDirection.Ascending;
             set { if (value) InstanceViewModel.FolderSettings.DirectorySortDirection = SortDirection.Ascending; }
         }
 
         public bool IsSortedDescending
         {
-            get => InstanceViewModel.FolderSettings.DirectorySortDirection == SortDirection.Descending;
+            get => InstanceViewModel?.FolderSettings.DirectorySortDirection == SortDirection.Descending;
             set { if (value) InstanceViewModel.FolderSettings.DirectorySortDirection = SortDirection.Descending; }
         }
 
@@ -204,6 +201,7 @@ namespace Files.ViewModels
         }
 
         private bool canCopyPathInPage;
+
         public bool CanCopyPathInPage
         {
             get => canCopyPathInPage;
@@ -211,30 +209,31 @@ namespace Files.ViewModels
         }
 
         private bool canGoBack;
+
         public bool CanGoBack
         {
             get => canGoBack;
             set => SetProperty(ref canGoBack, value);
         }
 
-
         private bool canGoForward;
+
         public bool CanGoForward
         {
             get => canGoForward;
             set => SetProperty(ref canGoForward, value);
         }
 
-
         private bool canNavigateToParent;
+
         public bool CanNavigateToParent
         {
             get => canNavigateToParent;
             set => SetProperty(ref canNavigateToParent, value);
         }
 
-
         private bool previewPaneEnabled;
+
         public bool PreviewPaneEnabled
         {
             get => previewPaneEnabled;
@@ -242,22 +241,23 @@ namespace Files.ViewModels
         }
 
         private bool canRefresh;
+
         public bool CanRefresh
         {
             get => canRefresh;
             set => SetProperty(ref canRefresh, value);
         }
 
-
         private string searchButtonGlyph = "\uE721";
+
         public string SearchButtonGlyph
         {
             get => searchButtonGlyph;
             set => SetProperty(ref searchButtonGlyph, value);
         }
 
-
         private bool isSearchBoxVisible;
+
         public bool IsSearchBoxVisible
         {
             get => isSearchBoxVisible;
@@ -270,8 +270,8 @@ namespace Files.ViewModels
             }
         }
 
-
         private string pathText;
+
         public string PathText
         {
             get => pathText;
@@ -280,13 +280,13 @@ namespace Files.ViewModels
 
         public ObservableCollection<ListedItem> NavigationBarSuggestions = new ObservableCollection<ListedItem>();
 
-
         private CurrentInstanceViewModel instanceViewModel;
+
         public CurrentInstanceViewModel InstanceViewModel
         {
             get => instanceViewModel;
             set
-            { 
+            {
                 if (instanceViewModel != value)
                 {
                     if (instanceViewModel != null)
@@ -318,15 +318,16 @@ namespace Files.ViewModels
         private DispatcherQueueTimer dragOverTimer;
 
         private ISearchBox searchBox = new SearchBoxViewModel();
+
         public ISearchBox SearchBox
         {
             get => searchBox;
             set => SetProperty(ref searchBox, value);
         }
+
         public SearchBoxViewModel SearchBoxViewModel => SearchBox as SearchBoxViewModel;
 
         public bool IsSingleItemOverride { get; set; } = false;
-
 
         private string dragOverPath = null;
 
@@ -398,7 +399,6 @@ namespace Files.ViewModels
             deferral.Complete();
         }
 
-
         public async void PathBoxItem_DragOver(object sender, DragEventArgs e)
         {
             if (IsSingleItemOverride || !((sender as Grid).DataContext is PathBoxItem pathBoxItem) ||
@@ -443,6 +443,8 @@ namespace Files.ViewModels
             var deferral = e.GetDeferral();
 
             var (handledByFtp, storageItems) = await Filesystem.FilesystemHelpers.GetDraggedStorageItems(e.DataView);
+            storageItems ??= new List<IStorageItemWithPath>();
+
             if (handledByFtp)
             {
                 e.AcceptedOperation = DataPackageOperation.None;
@@ -456,6 +458,13 @@ namespace Files.ViewModels
                 Contains(Path.DirectorySeparatorChar)))
             {
                 e.AcceptedOperation = DataPackageOperation.None;
+            }
+            // copy be default when dragging from zip
+            else if (storageItems.Any(x => x.Item is ZipStorageFile || x.Item is ZipStorageFolder)
+                || ZipStorageFolder.IsZipPath(pathBoxItem.Path))
+            {
+                e.DragUIOverride.Caption = string.Format("CopyToFolderCaptionText".GetLocalized(), pathBoxItem.Title);
+                e.AcceptedOperation = DataPackageOperation.Copy;
             }
             else
             {
@@ -491,8 +500,8 @@ namespace Files.ViewModels
             }
         }
 
-
         private bool manualEntryBoxLoaded;
+
         public bool ManualEntryBoxLoaded
         {
             get => manualEntryBoxLoaded;
@@ -500,14 +509,15 @@ namespace Files.ViewModels
         }
 
         private bool clickablePathLoaded = true;
+
         public bool ClickablePathLoaded
         {
             get => clickablePathLoaded;
             set => SetProperty(ref clickablePathLoaded, value);
         }
 
-
         private string pathControlDisplayText;
+
         public string PathControlDisplayText
         {
             get => pathControlDisplayText;
@@ -581,7 +591,7 @@ namespace Files.ViewModels
             }
         }
 
-        NavigationToolbar NavToolbar => (Window.Current.Content as Frame).FindDescendant<NavigationToolbar>();
+        private NavigationToolbar NavToolbar => (Window.Current.Content as Frame).FindDescendant<NavigationToolbar>();
 
         #region YourHome Widgets
 
@@ -661,6 +671,7 @@ namespace Files.ViewModels
         }
 
         private void SearchRegion_SuggestionChosen(ISearchBox sender, SearchBoxSuggestionChosenEventArgs args) => IsSearchBoxVisible = false;
+
         private void SearchRegion_Escaped(object sender, ISearchBox searchBox) => IsSearchBoxVisible = false;
 
         public ICommand SelectAllContentPageItemsCommand { get; set; }
@@ -686,7 +697,7 @@ namespace Files.ViewModels
         public ICommand CopyCommand { get; set; }
 
         public ICommand DeleteCommand { get; set; }
-        
+
         public ICommand Rename { get; set; }
 
         public ICommand Share { get; set; }
@@ -865,13 +876,13 @@ namespace Files.ViewModels
 
         public async void SetAddressBarSuggestions(AutoSuggestBox sender, IShellPage shellpage, int maxSuggestions = 7)
         {
-            if (!string.IsNullOrWhiteSpace(sender.Text))
+            if (!string.IsNullOrWhiteSpace(sender.Text) && shellpage.FilesystemViewModel != null)
             {
                 try
                 {
                     IList<ListedItem> suggestions = null;
                     var expandedPath = StorageFileExtensions.GetPathWithoutEnvironmentVariable(sender.Text);
-                    var folderPath = Path.GetDirectoryName(expandedPath) ?? expandedPath;
+                    var folderPath = PathNormalization.GetParentDir(expandedPath) ?? expandedPath;
                     var folder = await shellpage.FilesystemViewModel.GetFolderWithPathFromPathAsync(folderPath);
                     var currPath = await folder.Result.GetFoldersWithPathAsync(Path.GetFileName(expandedPath), (uint)maxSuggestions);
                     if (currPath.Count() >= maxSuggestions)
@@ -893,7 +904,7 @@ namespace Files.ViewModels
                             subPath.Select(x => new ListedItem(null)
                             {
                                 ItemPath = x.Path,
-                                ItemName = Path.Combine(currPath.First().Folder.DisplayName, x.Folder.DisplayName)
+                                ItemName = PathNormalization.Combine(currPath.First().Folder.DisplayName, x.Folder.DisplayName)
                             })).ToList();
                     }
                     else
@@ -950,13 +961,14 @@ namespace Files.ViewModels
             }
         }
 
-        List<ListedItem> selectedItems;
+        private List<ListedItem> selectedItems;
+
         public List<ListedItem> SelectedItems
         {
             get => selectedItems;
             set
             {
-                if(SetProperty(ref selectedItems, value))
+                if (SetProperty(ref selectedItems, value))
                 {
                     OnPropertyChanged(nameof(CanCopy));
                     OnPropertyChanged(nameof(CanShare));
@@ -966,7 +978,7 @@ namespace Files.ViewModels
         }
 
         public bool CanCopy => SelectedItems is not null && SelectedItems.Any();
-        public bool CanShare => SelectedItems is not null && SelectedItems.Any() && DataTransferManager.IsSupported() && !SelectedItems.Any(x => (x.IsShortcutItem && !x.IsLinkItem) || x.IsHiddenItem || x.PrimaryItemAttribute == StorageItemTypes.Folder);
+        public bool CanShare => SelectedItems is not null && SelectedItems.Any() && DataTransferManager.IsSupported() && !SelectedItems.Any(x => (x.IsShortcutItem && !x.IsLinkItem) || x.IsHiddenItem || (x.PrimaryItemAttribute == StorageItemTypes.Folder && !x.IsZipItem));
         public bool CanRename => SelectedItems is not null && SelectedItems.Count == 1;
 
         public void Dispose()

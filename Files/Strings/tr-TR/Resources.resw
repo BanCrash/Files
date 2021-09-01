@@ -342,16 +342,16 @@
   <data name="BaseLayoutItemContextFlyoutSetAsLockscreenBackground.Text" xml:space="preserve">
     <value>Kilit arka planı olarak ayarla</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewLarge.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutLargeIcons.Text" xml:space="preserve">
     <value>Büyük Simgeler</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewMedium.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutMediumIcons.Text" xml:space="preserve">
     <value>Orta Simgeler</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewSmall.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutSmallIcons.Text" xml:space="preserve">
     <value>Küçük Simgeler</value>
   </data>
-  <data name="BaseLayoutContextFlyoutTilesView.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutTiles.Text" xml:space="preserve">
     <value>Döşemeler</value>
   </data>
   <data name="PropertiesDialogOKButton.Content" xml:space="preserve">
@@ -786,9 +786,6 @@
   <data name="AccessDeniedCreateDialog.Title" xml:space="preserve">
     <value>Erişim Engellendi</value>
   </data>
-  <data name="StatusCenter.AutomationProperties.Name" xml:space="preserve">
-    <value>Durum merkezi</value>
-  </data>
   <data name="FileItemAutomation" xml:space="preserve">
     <value>Dosya</value>
   </data>
@@ -1149,10 +1146,10 @@
   <data name="PropertyColorSpace_Value65535" xml:space="preserve">
     <value>Belirtilmemiş</value>
   </data>
-  <data name="StatusCenterTeachingTip.Subtitle" xml:space="preserve">
+  <data name="OngoingTasksTeachingTip.Subtitle" xml:space="preserve">
     <value>Dosya işlemlerinin durumunu buradan denetleyin</value>
   </data>
-  <data name="StatusCenterTeachingTip.Title" xml:space="preserve">
+  <data name="OngoingTasksTeachingTip.Title" xml:space="preserve">
     <value>Durum Merkezi</value>
   </data>
   <data name="SearchPagePathBoxOverrideText" xml:space="preserve">
@@ -1218,12 +1215,6 @@
   <data name="ItemAlreadyExistsDialogCloseButtonText" xml:space="preserve">
     <value>İptal</value>
   </data>
-  <data name="StatusCenter.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Süren işlemler</value>
-  </data>
-  <data name="StatusCenterFlyoutTitle.Text" xml:space="preserve">
-    <value>Süren İşlemler</value>
-  </data>
   <data name="BaseLayoutItemContextFlyoutOpenInNewPane.Text" xml:space="preserve">
     <value>İkinci panoda aç</value>
   </data>
@@ -1239,43 +1230,34 @@
   <data name="FolderWidgetDescription.Text" xml:space="preserve">
     <value>Klasörler</value>
   </data>
-  <data name="NavToolbarDetailsView.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavToolbarDetails.ToolTipService.ToolTip" xml:space="preserve">
     <value>Ayrıntılar Görünümü (Ctrl+Shift+1)</value>
   </data>
-  <data name="NavToolbarGridViewLarge.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavToolbarLargeIcons.ToolTipService.ToolTip" xml:space="preserve">
     <value>Izgara Görünümü (Büyük) (Ctrl+Shift+5)</value>
   </data>
-  <data name="NavToolbarGridViewMedium.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavToolbarMediumIcons.ToolTipService.ToolTip" xml:space="preserve">
     <value>Izgara Görünümü (Orta) (Ctrl+Shift+4)</value>
   </data>
-  <data name="NavToolbarGridViewSmall.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavToolbarSmallIcons.ToolTipService.ToolTip" xml:space="preserve">
     <value>Izgara Görünümü (Küçük) (Ctrl+Shift+3)</value>
   </data>
-  <data name="NavToolbarTilesView.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavToolbarTiles.ToolTipService.ToolTip" xml:space="preserve">
     <value>Döşeme Görünümü (Ctrl+Shift+2)</value>
   </data>
-  <data name="NavToolbarDisplayOptions.Text" xml:space="preserve">
-    <value>Görünüm Ayarları</value>
-  </data>
-  <data name="NavToolbarGridViewLarge.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarLargeIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Büyük simgeler</value>
   </data>
-  <data name="NavToolbarGridViewMedium.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarMediumIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Orta simgeler</value>
   </data>
-  <data name="NavToolbarGridViewSmall.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarSmallIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Küçük simgeler</value>
   </data>
-  <data name="NavToolbarTilesView.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarTiles.AutomationProperties.Name" xml:space="preserve">
     <value>Döşemeler</value>
   </data>
-  <data name="NavToolbarShowFileExtensions.Header" xml:space="preserve">
-    <value>Dosya uzantıları görüntülensin</value>
-  </data>
-  <data name="NavToolbarShowHiddenItems.Header" xml:space="preserve">
-    <value>Gizli ögeler görüntülensin</value>
-  </data>
-  <data name="NavToolbarDetailsView.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarDetails.AutomationProperties.Name" xml:space="preserve">
     <value>Ayrıntılar Görünümü</value>
   </data>
   <data name="BaseLayoutContextFlyoutSortByDateDeleted.Text" xml:space="preserve">
@@ -1413,7 +1395,7 @@
   <data name="SettingsAboutDocumentationListViewItem.AutomationProperties.Name" xml:space="preserve">
     <value>Files uygulamasının belge web sitesi</value>
   </data>
-  <data name="StatusCenterFlyout.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksFlyout.AutomationProperties.Name" xml:space="preserve">
     <value>Süren görevler açılır penceresi</value>
   </data>
   <data name="CloudDriveSyncStatus_Online" xml:space="preserve">
@@ -1986,16 +1968,16 @@
   <data name="StatusCancellingOp" xml:space="preserve">
     <value>iptal</value>
   </data>
-  <data name="StatusCenterDismissBannerButton.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksDismissBannerButton.AutomationProperties.Name" xml:space="preserve">
     <value>Azletmek</value>
   </data>
-  <data name="StatusCenterDismissBannerButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="OngoingTasksDismissBannerButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Azletmek</value>
   </data>
-  <data name="StatusCenterCancelBannerButton.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksCancelBannerButton.AutomationProperties.Name" xml:space="preserve">
     <value>İptal</value>
   </data>
-  <data name="StatusCenterCancelBannerButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="OngoingTasksCancelBannerButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>İptal</value>
   </data>
   <data name="NavToolbarWidgets.Label" xml:space="preserve">
@@ -2319,9 +2301,6 @@
   <data name="PropertySyncStatus" xml:space="preserve">
     <value>Senkronizasyon durumu</value>
   </data>
-  <data name="PreviewPaneLoadCloudItemButton.Content" xml:space="preserve">
-    <value>Tam önizlemeyi yükle</value>
-  </data>
   <data name="PreviewPaneLoadCloudItemButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Öğeyi buluttan indirir ve önizlemeyi yükler</value>
   </data>
@@ -2364,13 +2343,13 @@
   <data name="SideBarHideSectionFromSideBar.Text" xml:space="preserve">
     <value>{0} bölümünü gizle</value>
   </data>
-  <data name="SettingsMultitaskingAlwaysOpenDualPane.Title" xml:space="preserve">
+  <data name="SettingsMultitaskingAlwaysOpenDualPane" xml:space="preserve">
     <value>Çift bölme modunda her zaman yeni sekmeler açın</value>
   </data>
-  <data name="SettingsMultitaskingEnableDualPane.Title" xml:space="preserve">
+  <data name="SettingsMultitaskingEnableDualPane" xml:space="preserve">
     <value>Çift bölmeli görünümü etkinleştir</value>
   </data>
-  <data name="SettingsVerticalTabFlyoutSwitch.Title" xml:space="preserve">
+  <data name="SettingsVerticalTabFlyout" xml:space="preserve">
     <value>Başlık çubuğunda dikey sekme açılır penceresini görüntüleyin</value>
   </data>
   <data name="SettingsShowCloudDrivesSection.Title" xml:space="preserve">
@@ -2385,43 +2364,43 @@
   <data name="SettingsShowNetworkDrivesSection.Title" xml:space="preserve">
     <value>Kenar çubuğunda ağ sürücüleri bölümünü göster</value>
   </data>
-  <data name="SettingsRecycleBinSwitch.Title" xml:space="preserve">
+  <data name="SettingsPinRecycleBin.Title" xml:space="preserve">
     <value>Geri Dönüşüm Kutusu'nu Sık Kullanılanlara Sabitle</value>
   </data>
   <data name="SettingsShowLibrarySection.Title" xml:space="preserve">
     <value>Kenar çubuğunda kitaplık bölümünü göster</value>
   </data>
-  <data name="SettingsAppearanceTheme.Title" xml:space="preserve">
+  <data name="SettingsAppearanceTheme" xml:space="preserve">
     <value>Renginizi seçin</value>
   </data>
-  <data name="SettingsAppearanceCustomThemes.Title" xml:space="preserve">
+  <data name="SettingsAppearanceCustomThemes" xml:space="preserve">
     <value>Özel temalar</value>
   </data>
-  <data name="SettingsContextMenuOverflowSwitch.Title" xml:space="preserve">
+  <data name="SettingsContextMenuOverflow" xml:space="preserve">
     <value>Taşma öğelerini bir alt menüye taşı</value>
   </data>
   <data name="SettingsPreferencesAppLanguage.Title" xml:space="preserve">
     <value>Dilim</value>
   </data>
-  <data name="SettingsFilesAndFoldersShowFileExtensions.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersShowFileExtensions" xml:space="preserve">
     <value>Bilinen dosya türleri için uzantıları göster</value>
   </data>
-  <data name="SettingsFilesAndFoldersShowHiddenItems.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersShowHiddenItems" xml:space="preserve">
     <value>Gizli dosya ve klasörleri göster</value>
   </data>
-  <data name="SettingsFilesAndFoldersHideSystemItems.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersHideSystemItems" xml:space="preserve">
     <value>Korunan işletim sistemi dosyalarını gizle (Önerilen)</value>
   </data>
-  <data name="SettingsOpenItemsWithOneclick.Title" xml:space="preserve">
+  <data name="SettingsOpenItemsWithOneclick" xml:space="preserve">
     <value>Öğeleri tek bir tıklamayla açın</value>
   </data>
-  <data name="SettingsListAndSortDirectoriesAlongsideFiles.Title" xml:space="preserve">
+  <data name="SettingsListAndSortDirectoriesAlongsideFiles" xml:space="preserve">
     <value>Dosyaların yanında dizinleri listeleyin ve sıralayın</value>
   </data>
-  <data name="SettingsSearchUnindexedItems.Title" xml:space="preserve">
+  <data name="SettingsSearchUnindexedItems" xml:space="preserve">
     <value>Dosya ve klasör ararken dizine eklenmemiş öğeleri göster (aramalar daha uzun sürebilir)</value>
   </data>
-  <data name="SettingsEnableLayoutPreferencesPerFolder.Title" xml:space="preserve">
+  <data name="SettingsEnableLayoutPreferencesPerFolder" xml:space="preserve">
     <value>Bireysel dizinler için bireysel tercihleri etkinleştirin</value>
   </data>
   <data name="SettingsUsefulLinks.Title" xml:space="preserve">
@@ -2429,9 +2408,6 @@
   </data>
   <data name="SettingCopyVersionInfo.Content" xml:space="preserve">
     <value>Kopyala</value>
-  </data>
-  <data name="SettingsAboutOpenLogLocationButton.AutomationProperties.Name" xml:space="preserve">
-    <value>Günlük konumunu aç</value>
   </data>
   <data name="BaseLayoutItemContextFlyoutPinToFavorites.Text" xml:space="preserve">
     <value>Favorilere Sabitle</value>
@@ -2442,10 +2418,7 @@
   <data name="BaseLayoutContextFlyoutUnpinFromFavorites.Text" xml:space="preserve">
     <value>Favorilerden sabitlemeyi kaldır</value>
   </data>
-  <data name="NavSettingsButton.AutomationProperties.Name" xml:space="preserve">
-    <value>Ayarlar</value>
-  </data>
-  <data name="NavSettingsButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavSettingsButton" xml:space="preserve">
     <value>Ayarlar</value>
   </data>
   <data name="NavigationToolbarCopy.ToolTipService.ToolTip" xml:space="preserve">
@@ -2502,16 +2475,16 @@
   <data name="BaseLayoutContextFlyoutDetails.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+1</value>
   </data>
-  <data name="BaseLayoutContextFlyoutTilesView.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutTiles.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+2</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewSmall.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutSmallIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+3</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewMedium.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutMediumIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+4</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewLarge.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutLargeIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+5</value>
   </data>
   <data name="BaseLayoutContextFlyoutColumn.KeyboardAcceleratorTextOverride" xml:space="preserve">

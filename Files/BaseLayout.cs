@@ -1,6 +1,5 @@
 ﻿using Files.Enums;
 using Files.EventArguments;
-using Files.Events;
 using Files.Extensions;
 using Files.Filesystem;
 using Files.Filesystem.StorageItems;
@@ -24,7 +23,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.ApplicationModel.DataTransfer.DragDrop;
-using Windows.Foundation;
 using Windows.Storage;
 using Windows.System;
 using Windows.UI.Core;
@@ -111,7 +109,7 @@ namespace Files
             }
         }
 
-        private NavigationArguments navigationArguments;
+        protected NavigationArguments navigationArguments;
 
         private bool isItemSelected = false;
 
@@ -364,7 +362,7 @@ namespace Files
 
         protected abstract ListedItem GetItemFromElement(object element);
 
-        private void FolderSettings_LayoutModeChangeRequested(object sender, LayoutModeEventArgs e)
+        protected virtual void BaseFolderSettings_LayoutModeChangeRequested(object sender, LayoutModeEventArgs e)
         {
             if (ParentShellPageInstance.SlimContentPage != null)
             {
@@ -407,7 +405,7 @@ namespace Files
             InitializeCommandsViewModel();
 
             IsItemSelected = false;
-            FolderSettings.LayoutModeChangeRequested += FolderSettings_LayoutModeChangeRequested;
+            FolderSettings.LayoutModeChangeRequested += BaseFolderSettings_LayoutModeChangeRequested;
             FolderSettings.GroupOptionPreferenceUpdated += FolderSettings_GroupOptionPreferenceUpdated;
             ParentShellPageInstance.FilesystemViewModel.EmptyTextType = EmptyTextType.None;
             FolderSettings.SetLayoutInformation();
@@ -433,9 +431,10 @@ namespace Files
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeRecycleBin = workingDir.StartsWith(App.AppSettings.RecycleBinPath);
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeMtpDevice = workingDir.StartsWith("\\\\?\\");
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeFtp = FtpHelpers.IsFtpPath(workingDir);
+                ParentShellPageInstance.InstanceViewModel.IsPageTypeZipFolder = ZipStorageFolder.IsZipPath(workingDir);
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeSearchResults = false;
                 ParentShellPageInstance.NavToolbarViewModel.PathControlDisplayText = navigationArguments.NavPathParam;
-                if (!navigationArguments.IsLayoutSwitch)
+                if (!navigationArguments.IsLayoutSwitch || previousDir != workingDir)
                 {
                     ParentShellPageInstance.FilesystemViewModel.RefreshItems(previousDir, SetSelectedItemsOnNavigation);
                 }
@@ -453,6 +452,7 @@ namespace Files
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeRecycleBin = false;
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeFtp = false;
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeMtpDevice = false;
+                ParentShellPageInstance.InstanceViewModel.IsPageTypeZipFolder = false;
                 ParentShellPageInstance.InstanceViewModel.IsPageTypeSearchResults = true;
                 if (!navigationArguments.IsLayoutSwitch)
                 {
@@ -521,7 +521,7 @@ namespace Files
             base.OnNavigatingFrom(e);
             // Remove item jumping handler
             Window.Current.CoreWindow.CharacterReceived -= Page_CharacterReceived;
-            FolderSettings.LayoutModeChangeRequested -= FolderSettings_LayoutModeChangeRequested;
+            FolderSettings.LayoutModeChangeRequested -= BaseFolderSettings_LayoutModeChangeRequested;
             FolderSettings.GroupOptionPreferenceUpdated -= FolderSettings_GroupOptionPreferenceUpdated;
             ItemContextMenuFlyout.Opening -= ItemContextFlyout_Opening;
             BaseContextMenuFlyout.Opening -= BaseContextFlyout_Opening;
@@ -588,7 +588,10 @@ namespace Files
                         return;
                     }
 
-                    AddShellItemsToMenu(shellMenuItems, BaseContextMenuFlyout, shiftPressed);
+                    if (!InstanceViewModel.IsPageTypeZipFolder)
+                    {
+                        AddShellItemsToMenu(shellMenuItems, BaseContextMenuFlyout, shiftPressed);
+                    }
                 }
             }
             catch (Exception error)
@@ -619,7 +622,7 @@ namespace Files
             secondaryElements.OfType<FrameworkElement>().ForEach(i => i.MinWidth = 250); // Set menu min width
             secondaryElements.ForEach(i => ItemContextMenuFlyout.SecondaryCommands.Add(i));
 
-            if (AppSettings.AreFileTagsEnabled && !InstanceViewModel.IsPageTypeSearchResults && !InstanceViewModel.IsPageTypeRecycleBin && !InstanceViewModel.IsPageTypeFtp)
+            if (AppSettings.AreFileTagsEnabled && !InstanceViewModel.IsPageTypeSearchResults && !InstanceViewModel.IsPageTypeRecycleBin && !InstanceViewModel.IsPageTypeFtp && !InstanceViewModel.IsPageTypeZipFolder)
             {
                 AddFileTagsItemToMenu(ItemContextMenuFlyout);
             }
@@ -630,7 +633,10 @@ namespace Files
                 return;
             }
 
-            AddShellItemsToMenu(shellMenuItems, ItemContextMenuFlyout, shiftPressed);
+            if (!InstanceViewModel.IsPageTypeZipFolder)
+            {
+                AddShellItemsToMenu(shellMenuItems, ItemContextMenuFlyout, shiftPressed);
+            }
         }
 
         private void AddFileTagsItemToMenu(Microsoft.UI.Xaml.Controls.CommandBarFlyout contextMenu)
@@ -771,10 +777,14 @@ namespace Files
                 {
                     if (item.PrimaryItemAttribute == StorageItemTypes.File)
                     {
-                        selectedStorageItems.Add(await new FtpStorageFile(ParentShellPageInstance.FilesystemViewModel, ftpItem).ToStorageFileAsync());
+                        selectedStorageItems.Add(await new FtpStorageFile(ftpItem).ToStorageFileAsync());
+                    }
+                    else if (item.PrimaryItemAttribute == StorageItemTypes.Folder)
+                    {
+                        selectedStorageItems.Add(new FtpStorageFolder(ftpItem));
                     }
                 }
-                else if (item.PrimaryItemAttribute == StorageItemTypes.File)
+                else if (item.PrimaryItemAttribute == StorageItemTypes.File || item is ZipItem)
                 {
                     result = await ParentShellPageInstance.FilesystemViewModel.GetFileFromPathAsync(item.ItemPath)
                         .OnSuccess(t => selectedStorageItems.Add(t));
@@ -869,6 +879,7 @@ namespace Files
                 e.Handled = true;
 
                 var (handledByFtp, draggedItems) = await Filesystem.FilesystemHelpers.GetDraggedStorageItems(e.DataView);
+                draggedItems ??= new List<IStorageItemWithPath>();
 
                 if (draggedItems.Any(draggedItem => draggedItem.Path == item.ItemPath))
                 {
@@ -906,6 +917,12 @@ namespace Files
                     {
                         e.DragUIOverride.Caption = string.Format("MoveToFolderCaptionText".GetLocalized(), item.ItemName);
                         e.AcceptedOperation = DataPackageOperation.Move;
+                    }
+                    else if (draggedItems.Any(x => x.Item is ZipStorageFile || x.Item is ZipStorageFolder)
+                        || ZipStorageFolder.IsZipPath(item.ItemPath))
+                    {
+                        e.DragUIOverride.Caption = string.Format("CopyToFolderCaptionText".GetLocalized(), item.ItemName);
+                        e.AcceptedOperation = DataPackageOperation.Copy;
                     }
                     else if (draggedItems.AreItemsInSameDrive(item.ItemPath))
                     {
@@ -970,7 +987,11 @@ namespace Files
 
         public readonly VirtualKey MinusKey = (VirtualKey)189;
 
-        public abstract void Dispose();
+        public virtual void Dispose()
+        {
+            PreviewPaneViewModel?.Dispose();
+            UnhookBaseEvents();
+        }
 
         protected void ItemsLayout_DragOver(object sender, DragEventArgs e)
         {

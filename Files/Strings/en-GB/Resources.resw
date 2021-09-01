@@ -144,16 +144,16 @@
   <data name="SettingsDateFormat.Title" xml:space="preserve">
     <value>Date format</value>
   </data>
-  <data name="SettingsAppearanceTheme.Title" xml:space="preserve">
+  <data name="SettingsAppearanceTheme" xml:space="preserve">
     <value>Choose your colour</value>
   </data>
   <data name="SettingsAppearanceTitle.Text" xml:space="preserve">
     <value>Appearance</value>
   </data>
-  <data name="SettingsFilesAndFoldersShowFileExtensions.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersShowFileExtensions" xml:space="preserve">
     <value>Show extensions for known file types</value>
   </data>
-  <data name="SettingsFilesAndFoldersShowHiddenItems.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersShowHiddenItems" xml:space="preserve">
     <value>Show hidden files and folders</value>
   </data>
   <data name="SettingsFilesAndFoldersTitle.Text" xml:space="preserve">
@@ -399,16 +399,16 @@
   <data name="BaseLayoutItemContextFlyoutSetAsLockscreenBackground.Text" xml:space="preserve">
     <value>Set as lockscreen background</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewLarge.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutLargeIcons.Text" xml:space="preserve">
     <value>Grid View (Large)</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewMedium.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutMediumIcons.Text" xml:space="preserve">
     <value>Grid View (Medium)</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewSmall.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutSmallIcons.Text" xml:space="preserve">
     <value>Grid View (Small)</value>
   </data>
-  <data name="BaseLayoutContextFlyoutTilesView.Text" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutTiles.Text" xml:space="preserve">
     <value>Tiles View</value>
   </data>
   <data name="PropertiesDialogOKButton.Content" xml:space="preserve">
@@ -512,9 +512,6 @@
   </data>
   <data name="RenameDialogSymbolsTip.Text" xml:space="preserve">
     <value>The item name must not contain the following characters: \ / : * ? " &lt; &gt; |</value>
-  </data>
-  <data name="SettingsAboutOpenLogLocationButton.AutomationProperties.Name" xml:space="preserve">
-    <value>Open log location</value>
   </data>
   <data name="ItemSelected.Text" xml:space="preserve">
     <value>item selected</value>
@@ -882,10 +879,10 @@
   <data name="SettingsPreferencesEditTerminalApplicationsExpander.Title" xml:space="preserve">
     <value>Edit terminal applications</value>
   </data>
-  <data name="SettingsContextMenuOverflowSwitch.Title" xml:space="preserve">
+  <data name="SettingsContextMenuOverflow" xml:space="preserve">
     <value>Move overflow items into a sub menu</value>
   </data>
-  <data name="SettingsRecycleBinSwitch.Title" xml:space="preserve">
+  <data name="SettingsPinRecycleBin.Title" xml:space="preserve">
     <value>Pin Recycle Bin to Favourites</value>
   </data>
   <data name="SettingsPreferencesShowConfirmDeleteDialog.Title" xml:space="preserve">
@@ -1200,10 +1197,7 @@
   <data name="NavToolbarSelectionOptions.Label" xml:space="preserve">
     <value>Select</value>
   </data>
-  <data name="StatusCenter.AutomationProperties.Name" xml:space="preserve">
-    <value>Status center</value>
-  </data>
-  <data name="SettingsOpenItemsWithOneclick.Title" xml:space="preserve">
+  <data name="SettingsOpenItemsWithOneclick" xml:space="preserve">
     <value>Open items with a single click</value>
   </data>
   <data name="FileItemAutomation" xml:space="preserve">
@@ -1266,10 +1260,10 @@
   <data name="ClearPropertiesButton.Content" xml:space="preserve">
     <value>Clear All Properties</value>
   </data>
-  <data name="StatusCenterTeachingTip.Subtitle" xml:space="preserve">
+  <data name="OngoingTasksTeachingTip.Subtitle" xml:space="preserve">
     <value>Check the status of file operations here</value>
   </data>
-  <data name="StatusCenterTeachingTip.Title" xml:space="preserve">
+  <data name="OngoingTasksTeachingTip.Title" xml:space="preserve">
     <value>Status Center</value>
   </data>
   <data name="NavSearchButton.AutomationProperties.Name" xml:space="preserve">
@@ -1293,7 +1287,7 @@
   <data name="SettingsAboutSupportUsListViewItem.AutomationProperties.Name" xml:space="preserve">
     <value>Support us on PayPal</value>
   </data>
-  <data name="SettingsListAndSortDirectoriesAlongsideFiles.Title" xml:space="preserve">
+  <data name="SettingsListAndSortDirectoriesAlongsideFiles" xml:space="preserve">
     <value>List and sort directories alongside files</value>
   </data>
   <data name="PropertiesDialogTabDetails.Content" xml:space="preserve">
@@ -1311,13 +1305,13 @@
   <data name="UpdateConsentDialogTitle" xml:space="preserve">
     <value>Updates Available</value>
   </data>
-  <data name="SettingsFilesAndFoldersHideSystemItems.Title" xml:space="preserve">
+  <data name="SettingsFilesAndFoldersHideSystemItems" xml:space="preserve">
     <value>Hide protected operating system files (Recommended)</value>
   </data>
-  <data name="SettingsSearchUnindexedItems.Title" xml:space="preserve">
+  <data name="SettingsSearchUnindexedItems" xml:space="preserve">
     <value>Show unindexed items when searching for files and folders (searches may take longer)</value>
   </data>
-  <data name="SettingsEnableLayoutPreferencesPerFolder.Title" xml:space="preserve">
+  <data name="SettingsEnableLayoutPreferencesPerFolder" xml:space="preserve">
     <value>Enable individual preferences for individual directories</value>
   </data>
   <data name="SettingsContextMenu.Text" xml:space="preserve">
@@ -1341,16 +1335,10 @@
   <data name="ItemAlreadyExistsDialogCloseButtonText" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="StatusCenter.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Ongoing Tasks</value>
-  </data>
-  <data name="StatusCenterFlyoutTitle.Text" xml:space="preserve">
-    <value>Ongoing Tasks</value>
-  </data>
-  <data name="SettingsMultitaskingAlwaysOpenDualPane.Title" xml:space="preserve">
+  <data name="SettingsMultitaskingAlwaysOpenDualPane" xml:space="preserve">
     <value>Always open new tabs in dual pane mode</value>
   </data>
-  <data name="SettingsMultitaskingEnableDualPane.Title" xml:space="preserve">
+  <data name="SettingsMultitaskingEnableDualPane" xml:space="preserve">
     <value>Enable dual pane view</value>
   </data>
   <data name="BaseLayoutItemContextFlyoutOpenInNewPane.Text" xml:space="preserve">
@@ -1368,14 +1356,11 @@
   <data name="FolderWidgetDescription.Text" xml:space="preserve">
     <value>Folders</value>
   </data>
-  <data name="NavToolbarDetailsView.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Details View (Ctrl+Shift+1)</value>
+  <data name="NavToolbarDetails.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Details (Ctrl+Shift+1)</value>
   </data>
-  <data name="NavToolbarDetailsView.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarDetails.AutomationProperties.Name" xml:space="preserve">
     <value>Details View</value>
-  </data>
-  <data name="NavToolbarDisplayOptions.Text" xml:space="preserve">
-    <value>Display Options</value>
   </data>
   <data name="NavToolbarLayoutOptionsButton.AutomationProperties.Name" xml:space="preserve">
     <value>Layout</value>
@@ -1389,35 +1374,29 @@
   <data name="PreviewPaneToggle.Label" xml:space="preserve">
     <value>Preview</value>
   </data>
-  <data name="NavToolbarGridViewLarge.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarLargeIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Grid View (Large)</value>
   </data>
-  <data name="NavToolbarGridViewLarge.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Grid View (Large) (Ctrl+Shift+5)</value>
+  <data name="NavToolbarLargeIcons.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Large Icons (Ctrl+Shift+5)</value>
   </data>
-  <data name="NavToolbarGridViewMedium.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarMediumIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Grid View (Medium)</value>
   </data>
-  <data name="NavToolbarGridViewMedium.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Grid View (Medium) (Ctrl+Shift+4)</value>
+  <data name="NavToolbarMediumIcons.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Medium Icons (Ctrl+Shift+4)</value>
   </data>
-  <data name="NavToolbarGridViewSmall.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarSmallIcons.AutomationProperties.Name" xml:space="preserve">
     <value>Grid View (Small)</value>
   </data>
-  <data name="NavToolbarGridViewSmall.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Grid View (Small) (Ctrl+Shift+3)</value>
+  <data name="NavToolbarSmallIcons.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Small Icons (Ctrl+Shift+3)</value>
   </data>
-  <data name="NavToolbarTilesView.AutomationProperties.Name" xml:space="preserve">
+  <data name="NavToolbarTiles.AutomationProperties.Name" xml:space="preserve">
     <value>Tiles View</value>
   </data>
-  <data name="NavToolbarTilesView.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Tiles View (Ctrl+Shift+2)</value>
-  </data>
-  <data name="NavToolbarShowFileExtensions.Header" xml:space="preserve">
-    <value>Show file extensions</value>
-  </data>
-  <data name="NavToolbarShowHiddenItems.Header" xml:space="preserve">
-    <value>Show hidden items</value>
+  <data name="NavToolbarTiles.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Tiles (Ctrl+Shift+2)</value>
   </data>
   <data name="BaseLayoutContextFlyoutSortByDateDeleted.Text" xml:space="preserve">
     <value>Date deleted</value>
@@ -1521,6 +1500,9 @@
   <data name="BundlesWidgetAddBundleInputPlaceholderText" xml:space="preserve">
     <value>Desired name</value>
   </data>
+  <data name="PreviewPaneToggle.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Toggle the preview pane (Ctrl+P)</value>
+  </data>
   <data name="DetailsPanePreviewNotAvaliableText" xml:space="preserve">
     <value>No preview available</value>
   </data>
@@ -1554,7 +1536,7 @@
   <data name="SettingsAboutDocumentationListViewItem.AutomationProperties.Name" xml:space="preserve">
     <value>Visit the Files documentation website</value>
   </data>
-  <data name="StatusCenterFlyout.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksFlyout.AutomationProperties.Name" xml:space="preserve">
     <value>Ongoing tasks flyout</value>
   </data>
   <data name="CloudDriveSyncStatus_Online" xml:space="preserve">
@@ -1659,7 +1641,7 @@
   <data name="DefaultTheme" xml:space="preserve">
     <value>Default</value>
   </data>
-  <data name="SettingsAppearanceCustomThemes.Title" xml:space="preserve">
+  <data name="SettingsAppearanceCustomThemes" xml:space="preserve">
     <value>Custom themes</value>
   </data>
   <data name="PropertyItemCount" xml:space="preserve">
@@ -1714,7 +1696,7 @@
     <value>Column View</value>
   </data>
   <data name="NavToolbarColumnView.ToolTipService.ToolTip" xml:space="preserve">
-    <value>Column View (Ctrl+Shift+6)</value>
+    <value>Columns (Ctrl+Shift+6)</value>
   </data>
   <data name="PinItemToStart.Text" xml:space="preserve">
     <value>Pin to the Start Menu</value>
@@ -2133,16 +2115,16 @@
   <data name="StatusCancellingOp" xml:space="preserve">
     <value>canceling</value>
   </data>
-  <data name="StatusCenterDismissBannerButton.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksDismissBannerButton.AutomationProperties.Name" xml:space="preserve">
     <value>Dismiss</value>
   </data>
-  <data name="StatusCenterDismissBannerButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="OngoingTasksDismissBannerButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Dismiss</value>
   </data>
-  <data name="StatusCenterCancelBannerButton.AutomationProperties.Name" xml:space="preserve">
+  <data name="OngoingTasksCancelBannerButton.AutomationProperties.Name" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="StatusCenterCancelBannerButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="OngoingTasksCancelBannerButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="NavToolbarWidgets.Label" xml:space="preserve">
@@ -2205,7 +2187,7 @@
   <data name="SettingsSidebarTitle.Text" xml:space="preserve">
     <value>Sidebar</value>
   </data>
-  <data name="SettingsVerticalTabFlyoutSwitch.Title" xml:space="preserve">
+  <data name="SettingsVerticalTabFlyout" xml:space="preserve">
     <value>Display the vertical tab flyout on the title bar</value>
   </data>
   <data name="SettingsThemesLearnMoreButton.AutomationProperties.Name" xml:space="preserve">
@@ -2424,9 +2406,6 @@
   <data name="PropertySyncStatus" xml:space="preserve">
     <value>Sync status</value>
   </data>
-  <data name="PreviewPaneLoadCloudItemButton.Content" xml:space="preserve">
-    <value>Load full preview</value>
-  </data>
   <data name="PreviewPaneLoadCloudItemButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Downloads the item from the cloud and loads the preview</value>
   </data>
@@ -2454,10 +2433,7 @@
   <data name="SideBarHideSectionFromSideBar.Text" xml:space="preserve">
     <value>Hide {0} section</value>
   </data>
-  <data name="NavSettingsButton.AutomationProperties.Name" xml:space="preserve">
-    <value>Settings</value>
-  </data>
-  <data name="NavSettingsButton.ToolTipService.ToolTip" xml:space="preserve">
+  <data name="NavSettingsButton" xml:space="preserve">
     <value>Settings</value>
   </data>
   <data name="NavigationToolbarCopy.ToolTipService.ToolTip" xml:space="preserve">
@@ -2514,16 +2490,16 @@
   <data name="BaseLayoutContextFlyoutDetails.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+1</value>
   </data>
-  <data name="BaseLayoutContextFlyoutTilesView.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutTiles.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+2</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewSmall.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutSmallIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+3</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewMedium.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutMediumIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+4</value>
   </data>
-  <data name="BaseLayoutContextFlyoutGridViewLarge.KeyboardAcceleratorTextOverride" xml:space="preserve">
+  <data name="BaseLayoutContextFlyoutLargeIcons.KeyboardAcceleratorTextOverride" xml:space="preserve">
     <value>Ctrl+Shift+5</value>
   </data>
   <data name="BaseLayoutContextFlyoutColumn.KeyboardAcceleratorTextOverride" xml:space="preserve">
@@ -2600,7 +2576,7 @@ We use App Center to keep track of app usage, find bugs, and fix crashes. All in
     <value>Sync status</value>
   </data>
   <data name="SettingsShowFavoritesSection.Title" xml:space="preserve">
-    <value>Show Favorites section on the sidebar</value>
+    <value>Show Favourites section on the sidebar</value>
   </data>
   <data name="BaseLayoutContextFlyoutSortByFileTag.Text" xml:space="preserve">
     <value>File tag</value>
@@ -2670,5 +2646,101 @@ We use App Center to keep track of app usage, find bugs, and fix crashes. All in
   </data>
   <data name="NoSearchResultsFound" xml:space="preserve">
     <value>No items found</value>
+  </data>
+  <data name="BundlesWidgetAutomationProperties.Name" xml:space="preserve">
+    <value>Bundles Widget</value>
+  </data>
+  <data name="DrivesWidgetAutomationProperties.Name" xml:space="preserve">
+    <value>Drives Widget</value>
+  </data>
+  <data name="FolderWidgetAutomationProperties.Name" xml:space="preserve">
+    <value>Libraries Widget</value>
+  </data>
+  <data name="RecentFilesWidgetAutomationProperties.Name" xml:space="preserve">
+    <value>Recent Files Widget</value>
+  </data>
+  <data name="OpenLogLocation" xml:space="preserve">
+    <value>Open log location</value>
+  </data>
+  <data name="LinkToFolderCaptionText" xml:space="preserve">
+    <value>Create link in {0}</value>
+  </data>
+  <data name="NavToolbarColumnsHeader.Text" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+  <data name="NavToolbarDetailsHeader.Text" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="NavToolbarLargeIconsHeader.Text" xml:space="preserve">
+    <value>Large Icons</value>
+  </data>
+  <data name="NavToolbarMediumIconsHeader.Text" xml:space="preserve">
+    <value>Medium Icons</value>
+  </data>
+  <data name="NavToolbarSmallIconsHeader.Text" xml:space="preserve">
+    <value>Small Icons</value>
+  </data>
+  <data name="NavToolbarTilesHeader.Text" xml:space="preserve">
+    <value>Tiles</value>
+  </data>
+  <data name="NavToolbarShowFileExtensionsHeader.Text" xml:space="preserve">
+    <value>Show file extensions</value>
+  </data>
+  <data name="NavToolbarShowHiddenItems.AutomationProperties.Name" xml:space="preserve">
+    <value>Show hidden items</value>
+  </data>
+  <data name="NavToolbarShowFileExtensions.AutomationProperties.Name" xml:space="preserve">
+    <value>Show file extensions</value>
+  </data>
+  <data name="NavToolbarShowHiddenItemsHeader.Text" xml:space="preserve">
+    <value>Show hidden items</value>
+  </data>
+  <data name="SettingsShowFavoritesSectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show favourites section</value>
+  </data>
+  <data name="SettingsPinRecycleBinSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Pin Recycle Bin to favourites</value>
+  </data>
+  <data name="SettingsShowCloudDrivesSectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show cloud drives section</value>
+  </data>
+  <data name="SettingsShowDrivesSectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show drives section</value>
+  </data>
+  <data name="SettingsShowLibrarySectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show library section</value>
+  </data>
+  <data name="SettingsShowNetworkDrivesSectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show network section</value>
+  </data>
+  <data name="SettingsShowWslSectionSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show WSL section</value>
+  </data>
+  <data name="SettingsDateFormatComboBox.AutomationProperties.Name" xml:space="preserve">
+    <value>Date format</value>
+  </data>
+  <data name="SettingsDialogCloseButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SettingsOpenFoldersNewTabToggleSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Open folders in new tab</value>
+  </data>
+  <data name="SettingsPreferencesAppLanguageComboBox.AutomationProperties.Name" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="SettingsShowConfirmDeleteDialogToggleSwitch.AutomationProperties.Name" xml:space="preserve">
+    <value>Show a confirmation dialog when deleting files or folders</value>
+  </data>
+  <data name="TerminalApplicationsComboBox.AutomationProperties.Name" xml:space="preserve">
+    <value>Terminal application</value>
+  </data>
+  <data name="OngoingTasks" xml:space="preserve">
+    <value>Ongoing Tasks</value>
+  </data>
+  <data name="PreviewPaneLoadCloudItemButton.Text" xml:space="preserve">
+    <value>Load full preview</value>
+  </data>
+  <data name="PreviewPaneShowPreviewOnly.Text" xml:space="preserve">
+    <value>Show preview only</value>
   </data>
 </root>

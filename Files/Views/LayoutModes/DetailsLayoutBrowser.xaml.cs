@@ -212,7 +212,10 @@ namespace Files.Views.LayoutModes
 
             UpdateSortOptionsCommand = new RelayCommand<string>(x =>
             {
-                var val = Enum.Parse<SortOption>(x);
+                if (!Enum.TryParse<SortOption>(x, out var val))
+                {
+                    return;
+                }
                 if (FolderSettings.DirectorySortOption == val)
                 {
                     FolderSettings.DirectorySortDirection = (SortDirection)(((int)FolderSettings.DirectorySortDirection + 1) % 2);
@@ -594,7 +597,7 @@ namespace Files.Views.LayoutModes
                     if (listViewItem != null)
                     {
                         var textBox = listViewItem.FindDescendant("ItemNameTextBox") as TextBox;
-                        EndRename(textBox);
+                        CommitRename(textBox);
                     }
                 }
             }
@@ -617,6 +620,7 @@ namespace Files.Views.LayoutModes
 
         public override void Dispose()
         {
+            base.Dispose();
             UnhookEvents();
             CommandsViewModel?.Dispose();
         }
@@ -754,7 +758,7 @@ namespace Files.Views.LayoutModes
 
         private double MeasureTextColumn(int columnIndex, int measureItems, int maxItemLength)
         {
-            var tbs = DependencyObjectHelpers.FindChildren<TextBlock>(FileList.ItemsPanelRoot).Where(x => Grid.GetColumn(x.Parent as Grid) == columnIndex);
+            var tbs = DependencyObjectHelpers.FindChildren<TextBlock>(FileList.ItemsPanelRoot).Where(x => x.Parent is Grid && Grid.GetColumn((Grid)x.Parent) == columnIndex);
             var widthPerLetter = tbs.Where(tb => !string.IsNullOrEmpty(tb.Text)).Take(measureItems).Select(tb =>
             {
                 tb.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
@@ -765,6 +769,20 @@ namespace Files.Views.LayoutModes
                 return 0;
             }
             return widthPerLetter.Average() * maxItemLength;
+        }
+
+        private void FileList_Loaded(object sender, RoutedEventArgs e)
+        {
+            var contentScroller = FileList.FindDescendant<ScrollViewer>(x => x.Name == "ScrollViewer");
+            contentScroller.ViewChanged -= ContentScroller_ViewChanged;
+            contentScroller.ViewChanged += ContentScroller_ViewChanged;
+        }
+
+        private void ContentScroller_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+        {
+            //var headerScroller = FileList.FindDescendant<ScrollViewer>(x => x.Name == "HeaderScrollViewer");
+            var headerScroller = ((sender as ScrollViewer).Parent as Grid).Children[0] as ScrollViewer;
+            headerScroller.ChangeView((sender as ScrollViewer).HorizontalOffset, null, null, true);
         }
     }
 }

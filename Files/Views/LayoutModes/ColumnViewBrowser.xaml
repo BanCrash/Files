@@ -15,6 +15,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     xmlns:tui="using:Microsoft.Toolkit.Uwp.UI"
+    xmlns:uc="using:Files.UserControls"
     x:Name="PageRoot"
     mc:Ignorable="d">
     <i:Interaction.Behaviors>
@@ -95,7 +96,6 @@
                                 Stroke="{ThemeResource GridViewHeaderItemDividerStroke}"
                                 StrokeThickness="0.5" />
 
-
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal" />
@@ -130,7 +130,6 @@
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
                         </Grid>
-
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -146,6 +145,12 @@
             </controls:BladeView.ItemContainerTransitions>
             <controls:BladeItem x:Name="FirstBlade" Background="Transparent">
                 <Grid>
+                    <uc:FolderEmptyIndicator
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Canvas.ZIndex="0"
+                        EmptyTextType="{x:Bind ParentShellPageInstance.FilesystemViewModel.EmptyTextType, Mode=OneWay}" />
+
                     <muxc:TeachingTip
                         x:Name="FileNameTeachingTip"
                         x:Uid="FileNameTeachingTip"
@@ -456,7 +461,6 @@
                                 </ListView.ItemTemplate>
                             </ListView>
                         </SemanticZoom.ZoomedOutView>
-
                     </SemanticZoom>
                     <Canvas>
                         <Rectangle

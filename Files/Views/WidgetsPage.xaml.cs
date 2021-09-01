@@ -163,7 +163,7 @@ namespace Files.Views
             AppInstance.NavigateWithArguments(FolderSettings.GetLayoutType(e.ItemPath), new NavigationArguments()
             {
                 NavPathParam = e.ItemPath,
-                SelectItems = new [] { e.ItemName },
+                SelectItems = new[] { e.ItemName },
                 AssociatedTabInstance = AppInstance
             });
         }
@@ -211,6 +211,8 @@ namespace Files.Views
             AppInstance.InstanceViewModel.IsPageTypeMtpDevice = false;
             AppInstance.InstanceViewModel.IsPageTypeRecycleBin = false;
             AppInstance.InstanceViewModel.IsPageTypeCloudDrive = false;
+            AppInstance.InstanceViewModel.IsPageTypeFtp = false;
+            AppInstance.InstanceViewModel.IsPageTypeZipFolder = false;
             AppInstance.NavToolbarViewModel.CanRefresh = false;
             AppInstance.NavToolbarViewModel.CanGoBack = AppInstance.CanNavigateBackward;
             AppInstance.NavToolbarViewModel.CanGoForward = AppInstance.CanNavigateForward;

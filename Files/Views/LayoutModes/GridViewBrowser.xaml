@@ -357,7 +357,7 @@
                             HorizontalAlignment="Left"
                             Opacity="0.6"
                             Style="{StaticResource CaptionTextBlockStyle}"
-                            Text="{x:Bind FileSize}"
+                            Text="{x:Bind FileSize, Mode=OneWay}"
                             TextAlignment="Left"
                             TextTrimming="CharacterEllipsis"
                             TextWrapping="NoWrap" />
@@ -415,7 +415,6 @@
                                 Stroke="{ThemeResource GridViewHeaderItemDividerStroke}"
                                 StrokeThickness="0.5" />
 
-
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal" />
@@ -450,7 +449,6 @@
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
                         </Grid>
-
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

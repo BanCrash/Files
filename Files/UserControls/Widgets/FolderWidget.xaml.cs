@@ -1,5 +1,4 @@
-﻿using Files.Extensions;
-using Files.Filesystem;
+﻿using Files.Filesystem;
 using Files.Helpers;
 using Files.ViewModels;
 using Files.ViewModels.Widgets;
@@ -7,9 +6,7 @@ using Microsoft.Toolkit.Mvvm.ComponentModel;
 using Microsoft.Toolkit.Mvvm.Input;
 using Microsoft.Toolkit.Uwp;
 using System;
-using System.Collections.Specialized;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -40,6 +37,7 @@ namespace Files.UserControls.Widgets
         public bool HasPath => !string.IsNullOrEmpty(Path);
 
         private BitmapImage icon;
+
         public BitmapImage Icon
         {
             get => icon;
@@ -142,7 +140,7 @@ namespace Files.UserControls.Widgets
 
         private async Task GetItemsAddedIcon()
         {
-            foreach (var item in ItemsAdded)
+            foreach (var item in ItemsAdded.ToList())
             {
                 item.SelectCommand = LibraryCardClicked;
                 item.AutomationProperties = item.Text;

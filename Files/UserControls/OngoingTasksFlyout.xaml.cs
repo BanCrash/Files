@@ -1,16 +1,6 @@
-﻿using Files.Enums;
-using Files.Helpers;
-using Files.Interacts;
-using Files.ViewModels;
-using Microsoft.Toolkit.Mvvm.ComponentModel;
-using Microsoft.Toolkit.Uwp;
+﻿using Files.ViewModels;
 using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Windows.UI;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
@@ -18,10 +8,11 @@ using Windows.UI.Xaml.Controls;
 
 namespace Files.UserControls
 {
-    public sealed partial class StatusCenter : UserControl
+    public sealed partial class OngoingTasksFlyout : UserControl
     {
-        public StatusCenterViewModel StatusCenterViewModel { get; set; }
-        public StatusCenter()
+        public OngoingTasksViewModel OngoingTasksViewModel { get; set; }
+
+        public OngoingTasksFlyout()
         {
             this.InitializeComponent();
         }
@@ -30,7 +21,7 @@ namespace Files.UserControls
         private void DismissBanner(object sender, RoutedEventArgs e)
         {
             StatusBanner itemToDismiss = (sender as Button).DataContext as StatusBanner;
-            StatusCenterViewModel.CloseBanner(itemToDismiss);
+            OngoingTasksViewModel.CloseBanner(itemToDismiss);
         }
 
         // Primary action button click
@@ -38,7 +29,7 @@ namespace Files.UserControls
         {
             StatusBanner itemToDismiss = (sender as Button).DataContext as StatusBanner;
             await Task.Run(itemToDismiss.PrimaryButtonClick);
-            StatusCenterViewModel.CloseBanner(itemToDismiss);
+            OngoingTasksViewModel.CloseBanner(itemToDismiss);
         }
     }
 }
