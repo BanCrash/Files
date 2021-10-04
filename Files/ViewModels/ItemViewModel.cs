@@ -44,10 +44,10 @@ namespace Files.ViewModels
 {
     public class ItemViewModel : ObservableObject, IDisposable
     {
-        private readonly SemaphoreSlim enumFolderSemaphore, loadExtendedPropsSemaphore;
+        private readonly SemaphoreSlim enumFolderSemaphore;
         private readonly ConcurrentQueue<(uint Action, string FileName)> operationQueue;
         private readonly ConcurrentDictionary<string, bool> itemLoadQueue;
-        private readonly ManualResetEventSlim operationEvent, itemLoadEvent;
+        private readonly AsyncManualResetEvent operationEvent, itemLoadEvent;
         private IntPtr hWatchDir;
         private IAsyncAction aWatcherAction;
 
@@ -349,10 +349,9 @@ namespace Files.ViewModels
             addFilesCTS = new CancellationTokenSource();
             semaphoreCTS = new CancellationTokenSource();
             loadPropsCTS = new CancellationTokenSource();
-            operationEvent = new ManualResetEventSlim();
-            itemLoadEvent = new ManualResetEventSlim();
+            operationEvent = new AsyncManualResetEvent();
             enumFolderSemaphore = new SemaphoreSlim(1, 1);
-            loadExtendedPropsSemaphore = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
+            itemLoadEvent = new AsyncManualResetEvent();
             shouldDisplayFileExtensions = App.AppSettings.ShowFileExtensions;
 
             AppServiceConnectionHelper.ConnectionChanged += AppServiceConnectionHelper_ConnectionChanged;
@@ -369,7 +368,10 @@ namespace Files.ViewModels
                 case nameof(AppSettings.AreFileTagsEnabled):
                     await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
                     {
-                        RefreshItems(null);
+                        if (WorkingDirectory != "Home".GetLocalized() && WorkingDirectory != "NewTab".GetLocalized())
+                        {
+                            RefreshItems(null);
+                        }
                     });
                     break;
             }
@@ -489,19 +491,19 @@ namespace Files.ViewModels
             {
                 if (filesAndFolders == null || filesAndFolders.Count == 0)
                 {
-                    Action action = () =>
+                    void ClearDisplay()
                     {
                         FilesAndFolders.Clear();
                         UpdateEmptyTextType();
                         DirectoryInfoUpdated?.Invoke(this, EventArgs.Empty);
-                    };
-                    if (CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
+                    }
+                    if (NativeWinApiHelper.IsHasThreadAccessPropertyPresent && CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
                     {
-                        action();
+                        ClearDisplay();
                     }
                     else
                     {
-                        await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(action);
+                        await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(ClearDisplay);
                     }
                     return;
                 }
@@ -517,7 +519,7 @@ namespace Files.ViewModels
                 // After calling BeginBulkOperation, ObservableCollection.CollectionChanged is suppressed
                 // so modifies to FilesAndFolders won't trigger UI updates, hence below operations can be
                 // run safely without needs of dispatching to UI thread
-                Action applyChangesAction = () =>
+                void ApplyChanges()
                 {
                     var startIndex = -1;
                     var tempList = new List<ListedItem>();
@@ -572,26 +574,26 @@ namespace Files.ViewModels
                     {
                         OrderGroups();
                     }
-                };
+                }
 
-                Action updateUIAction = () =>
+                void UpdateUI()
                 {
                     // trigger CollectionChanged with NotifyCollectionChangedAction.Reset
                     // once loading is completed so that UI can be updated
                     FilesAndFolders.EndBulkOperation();
                     UpdateEmptyTextType();
                     DirectoryInfoUpdated?.Invoke(this, EventArgs.Empty);
-                };
+                }
 
-                if (CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
+                if (NativeWinApiHelper.IsHasThreadAccessPropertyPresent && CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
                 {
-                    await Task.Run(applyChangesAction);
-                    updateUIAction();
+                    await Task.Run(ApplyChanges);
+                    UpdateUI();
                 }
                 else
                 {
-                    applyChangesAction();
-                    await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(updateUIAction);
+                    ApplyChanges();
+                    await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(UpdateUI);
                 }
             }
             catch (Exception ex)
@@ -608,7 +610,7 @@ namespace Files.ViewModels
                 return Task.CompletedTask;
             }
 
-            Action action = () =>
+            void OrderEntries()
             {
                 if (filesAndFolders.Count == 0)
                 {
@@ -616,15 +618,15 @@ namespace Files.ViewModels
                 }
 
                 filesAndFolders = SortingHelper.OrderFileList(filesAndFolders, folderSettings.DirectorySortOption, folderSettings.DirectorySortDirection).ToList();
-            };
+            }
 
-            if (CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
+            if (NativeWinApiHelper.IsHasThreadAccessPropertyPresent && CoreApplication.MainView.DispatcherQueue.HasThreadAccess)
             {
-                return Task.Run(action);
+                return Task.Run(OrderEntries);
             }
             else
             {
-                action();
+                OrderEntries();
                 return Task.CompletedTask;
             }
         }
@@ -907,169 +909,173 @@ namespace Files.ViewModels
                 return;
             }
 
+            itemLoadQueue[item.ItemPath] = false;
+
+            var cts = loadPropsCTS;
+
             try
             {
-                itemLoadQueue[item.ItemPath] = false;
-                await loadExtendedPropsSemaphore.WaitAsync(loadPropsCTS.Token);
-                if (itemLoadQueue.TryGetValue(item.ItemPath, out var canceled) && canceled)
+                await Task.Run(async () =>
                 {
-                    loadExtendedPropsSemaphore.Release();
-                    return;
-                }
+                    await itemLoadEvent.WaitAsync(cts.Token);
+
+                    if (itemLoadQueue.TryGetValue(item.ItemPath, out var canceled) && canceled)
+                    {
+                        return;
+                    }
+
+                    item.ItemPropertiesInitialized = true;
+                    var wasSyncStatusLoaded = false;
+                    ImageSource groupImage = null;
+                    bool loadGroupHeaderInfo = false;
+                    GroupedCollection<ListedItem> gp = null;
+                    try
+                    {
+                        bool isFileTypeGroupMode = folderSettings.DirectoryGroupOption == GroupOption.FileType;
+                        BaseStorageFile matchingStorageFile = null;
+                        if (item.Key != null && FilesAndFolders.IsGrouped && FilesAndFolders.GetExtendedGroupHeaderInfo != null)
+                        {
+                            gp = FilesAndFolders.GroupedCollection.Where(x => x.Model.Key == item.Key).FirstOrDefault();
+                            loadGroupHeaderInfo = !(gp is null) && !gp.Model.Initialized && !(gp.GetExtendedGroupHeaderInfo is null);
+                        }
+
+                        if (item.IsLibraryItem || item.PrimaryItemAttribute == StorageItemTypes.File || item.IsZipItem)
+                        {
+                            if (!item.IsShortcutItem && !item.IsHiddenItem && !FtpHelpers.IsFtpPath(item.ItemPath))
+                            {
+                                cts.Token.ThrowIfCancellationRequested();
+                                matchingStorageFile = await GetFileFromPathAsync(item.ItemPath);
+                                if (matchingStorageFile != null)
+                                {
+                                    cts.Token.ThrowIfCancellationRequested();
+                                    await LoadItemThumbnail(item, thumbnailSize, matchingStorageFile, true);
+
+                                    var syncStatus = await CheckCloudDriveSyncStatusAsync(matchingStorageFile);
+                                    var fileFRN = await FileTagsHelper.GetFileFRN(matchingStorageFile);
+                                    var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
+
+                                    cts.Token.ThrowIfCancellationRequested();
+                                    await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+                                    {
+                                        item.FolderRelativeId = matchingStorageFile.FolderRelativeId;
+                                        item.ItemType = matchingStorageFile.DisplayType;
+                                        item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(syncStatus);
+                                        item.FileFRN = fileFRN;
+                                        item.FileTag = fileTag;
+                                    }, Windows.System.DispatcherQueuePriority.Low);
+                                    FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
+                                    wasSyncStatusLoaded = true;
+                                }
+                            }
+                            if (!wasSyncStatusLoaded)
+                            {
+                                await LoadItemThumbnail(item, thumbnailSize, null, true);
+                            }
+                        }
+                        else
+                        {
+                            if (!item.IsShortcutItem && !item.IsHiddenItem && !FtpHelpers.IsFtpPath(item.ItemPath))
+                            {
+                                cts.Token.ThrowIfCancellationRequested();
+                                BaseStorageFolder matchingStorageFolder = await GetFolderFromPathAsync(item.ItemPath);
+                                if (matchingStorageFolder != null)
+                                {
+                                    cts.Token.ThrowIfCancellationRequested();
+                                    await LoadItemThumbnail(item, thumbnailSize, matchingStorageFolder, true);
+                                    if (matchingStorageFolder.DisplayName != item.ItemName && !matchingStorageFolder.DisplayName.StartsWith("$R"))
+                                    {
+                                        cts.Token.ThrowIfCancellationRequested();
+                                        await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+                                        {
+                                            item.ItemName = matchingStorageFolder.DisplayName;
+                                        });
+                                        await fileListCache.SaveFileDisplayNameToCache(item.ItemPath, matchingStorageFolder.DisplayName);
+                                        if (folderSettings.DirectorySortOption == SortOption.Name && !isLoadingItems)
+                                        {
+                                            await OrderFilesAndFoldersAsync();
+                                            await ApplySingleFileChangeAsync(item);
+                                        }
+                                    }
+
+                                    cts.Token.ThrowIfCancellationRequested();
+                                    var syncStatus = await CheckCloudDriveSyncStatusAsync(matchingStorageFolder);
+                                    var fileFRN = await FileTagsHelper.GetFileFRN(matchingStorageFolder);
+                                    var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
+                                    cts.Token.ThrowIfCancellationRequested();
+                                    await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+                                    {
+                                        item.FolderRelativeId = matchingStorageFolder.FolderRelativeId;
+                                        item.ItemType = matchingStorageFolder.DisplayType;
+                                        item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(syncStatus);
+                                        item.FileFRN = fileFRN;
+                                        item.FileTag = fileTag;
+                                    }, Windows.System.DispatcherQueuePriority.Low);
+                                    FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
+                                    wasSyncStatusLoaded = true;
+                                }
+                            }
+                            if (!wasSyncStatusLoaded)
+                            {
+                                cts.Token.ThrowIfCancellationRequested();
+                                await LoadItemThumbnail(item, thumbnailSize, null, true);
+                            }
+                        }
+
+                        if (loadGroupHeaderInfo && isFileTypeGroupMode)
+                        {
+                            cts.Token.ThrowIfCancellationRequested();
+                            groupImage = await GetItemTypeGroupIcon(item, matchingStorageFile);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    finally
+                    {
+                        if (!wasSyncStatusLoaded)
+                        {
+                            cts.Token.ThrowIfCancellationRequested();
+                            await FilesystemTasks.Wrap(async () =>
+                            {
+                                var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
+                                await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+                                {
+                                    item.SyncStatusUI = new CloudDriveSyncStatusUI() { LoadSyncStatus = false }; // Reset cloud sync status icon
+                                    item.FileTag = fileTag;
+                                }, Windows.System.DispatcherQueuePriority.Low);
+                                FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
+                            });
+                        }
+
+                        if (loadGroupHeaderInfo)
+                        {
+                            cts.Token.ThrowIfCancellationRequested();
+                            await FilesystemTasks.Wrap(() => CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+                            {
+                                gp.Model.ImageSource = groupImage;
+                                gp.InitializeExtendedGroupHeaderInfoAsync();
+                            }));
+                        }
+                    }
+                }, cts.Token);
             }
             catch (OperationCanceledException)
             {
-                return;
+                // ignored
             }
             finally
             {
                 itemLoadQueue.TryRemove(item.ItemPath, out _);
             }
-
-            item.ItemPropertiesInitialized = true;
-
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    itemLoadEvent.Wait(loadPropsCTS.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    loadExtendedPropsSemaphore.Release();
-                    return;
-                }
-
-                var wasSyncStatusLoaded = false;
-                ImageSource groupImage = null;
-                bool loadGroupHeaderInfo = false;
-                GroupedCollection<ListedItem> gp = null;
-                try
-                {
-                    bool isFileTypeGroupMode = folderSettings.DirectoryGroupOption == GroupOption.FileType;
-                    BaseStorageFile matchingStorageFile = null;
-                    if (item.Key != null && FilesAndFolders.IsGrouped && FilesAndFolders.GetExtendedGroupHeaderInfo != null)
-                    {
-                        gp = FilesAndFolders.GroupedCollection.Where(x => x.Model.Key == item.Key).FirstOrDefault();
-                        loadGroupHeaderInfo = !(gp is null) && !gp.Model.Initialized && !(gp.GetExtendedGroupHeaderInfo is null);
-                    }
-
-                    if (item.IsLibraryItem || item.PrimaryItemAttribute == StorageItemTypes.File || item.IsZipItem)
-                    {
-                        if (!item.IsShortcutItem && !item.IsHiddenItem && !FtpHelpers.IsFtpPath(item.ItemPath))
-                        {
-                            matchingStorageFile = await GetFileFromPathAsync(item.ItemPath);
-                            if (matchingStorageFile != null)
-                            {
-                                await LoadItemThumbnail(item, thumbnailSize, matchingStorageFile, true);
-
-                                var syncStatus = await CheckCloudDriveSyncStatusAsync(matchingStorageFile);
-                                var fileFRN = await FileTagsHelper.GetFileFRN(matchingStorageFile);
-                                var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
-                                await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
-                                {
-                                    item.FolderRelativeId = matchingStorageFile.FolderRelativeId;
-                                    item.ItemType = matchingStorageFile.DisplayType;
-                                    item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(syncStatus);
-                                    item.FileFRN = fileFRN;
-                                    item.FileTag = fileTag;
-                                }, Windows.System.DispatcherQueuePriority.Low);
-                                FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
-                                wasSyncStatusLoaded = true;
-                            }
-                        }
-                        if (!wasSyncStatusLoaded)
-                        {
-                            await LoadItemThumbnail(item, thumbnailSize, null, true);
-                        }
-                    }
-                    else
-                    {
-                        if (!item.IsShortcutItem && !item.IsHiddenItem && !FtpHelpers.IsFtpPath(item.ItemPath))
-                        {
-                            BaseStorageFolder matchingStorageFolder = await GetFolderFromPathAsync(item.ItemPath);
-                            if (matchingStorageFolder != null)
-                            {
-                                await LoadItemThumbnail(item, thumbnailSize, matchingStorageFolder, true);
-                                if (matchingStorageFolder.DisplayName != item.ItemName && !matchingStorageFolder.DisplayName.StartsWith("$R"))
-                                {
-                                    await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
-                                    {
-                                        item.ItemName = matchingStorageFolder.DisplayName;
-                                    });
-                                    await fileListCache.SaveFileDisplayNameToCache(item.ItemPath, matchingStorageFolder.DisplayName);
-                                    if (folderSettings.DirectorySortOption == SortOption.Name && !isLoadingItems)
-                                    {
-                                        await OrderFilesAndFoldersAsync();
-                                        await ApplySingleFileChangeAsync(item);
-                                    }
-                                }
-
-                                var syncStatus = await CheckCloudDriveSyncStatusAsync(matchingStorageFolder);
-                                var fileFRN = await FileTagsHelper.GetFileFRN(matchingStorageFolder);
-                                var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
-                                await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
-                                {
-                                    item.FolderRelativeId = matchingStorageFolder.FolderRelativeId;
-                                    item.ItemType = matchingStorageFolder.DisplayType;
-                                    item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(syncStatus);
-                                    item.FileFRN = fileFRN;
-                                    item.FileTag = fileTag;
-                                }, Windows.System.DispatcherQueuePriority.Low);
-                                FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
-                                wasSyncStatusLoaded = true;
-                            }
-                        }
-                        if (!wasSyncStatusLoaded)
-                        {
-                            await LoadItemThumbnail(item, thumbnailSize, null, true);
-                        }
-                    }
-
-                    if (loadGroupHeaderInfo && isFileTypeGroupMode)
-                    {
-                        groupImage = await GetItemTypeGroupIcon(item, matchingStorageFile);
-                    }
-                }
-                catch (Exception ex)
-                {
-                }
-                finally
-                {
-                    if (!wasSyncStatusLoaded)
-                    {
-                        await FilesystemTasks.Wrap(async () =>
-                        {
-                            var fileTag = FileTagsHelper.ReadFileTag(item.ItemPath);
-                            await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
-                            {
-                                item.SyncStatusUI = new CloudDriveSyncStatusUI() { LoadSyncStatus = false }; // Reset cloud sync status icon
-                                item.FileTag = fileTag;
-                            }, Windows.System.DispatcherQueuePriority.Low);
-                            FileTagsHelper.DbInstance.SetTag(item.ItemPath, item.FileFRN, item.FileTag);
-                        });
-                    }
-
-                    if (loadGroupHeaderInfo)
-                    {
-                        await FilesystemTasks.Wrap(() => CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
-                        {
-                            gp.Model.ImageSource = groupImage;
-                            gp.InitializeExtendedGroupHeaderInfoAsync();
-                        }));
-                    }
-
-                    loadExtendedPropsSemaphore.Release();
-                }
-            });
         }
 
         private async Task<ImageSource> GetItemTypeGroupIcon(ListedItem item, BaseStorageFile matchingStorageItem = null)
         {
             ImageSource groupImage = null;
-            if (item.PrimaryItemAttribute != StorageItemTypes.Folder)
+            if (item.PrimaryItemAttribute != StorageItemTypes.Folder || item.IsZipItem)
             {
-                var headerIconInfo = await FileThumbnailHelper.LoadIconFromPathAsync(item.ItemPath, 76, ThumbnailMode.ListView);
+                var headerIconInfo = await FileThumbnailHelper.LoadIconWithoutOverlayAsync(item.ItemPath, 64u);
+
                 if (headerIconInfo != null && !item.IsShortcutItem)
                 {
                     groupImage = await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() => headerIconInfo.ToBitmapAsync(), Windows.System.DispatcherQueuePriority.Low);
@@ -1141,6 +1147,8 @@ namespace Files.ViewModels
                 return;
             }
 
+            itemLoadEvent.Reset();
+
             try
             {
                 // Drop all the other waiting instances
@@ -1148,7 +1156,6 @@ namespace Files.ViewModels
                 semaphoreCTS = new CancellationTokenSource();
 
                 IsLoadingItems = true;
-                itemLoadEvent.Reset();
 
                 filesAndFolders.Clear();
                 FilesAndFolders.Clear();
@@ -1424,7 +1431,7 @@ namespace Files.ViewModels
 
             BaseStorageFolder rootFolder = null;
 
-            if (FolderHelpers.CheckFolderAccessWithWin32(path))
+            if (!enumFromStorageFolder && FolderHelpers.CheckFolderAccessWithWin32(path))
             {
                 // Will enumerate with FindFirstFileExFromApp, rootFolder only used for Bitlocker
                 currentStorageFolder = null;
@@ -1452,7 +1459,7 @@ namespace Files.ViewModels
                 {
                     //TODO: proper dialog
                     await DialogDisplayHelper.ShowDialogAsync(
-                        "AccessDeniedDeleteDialog/Title".GetLocalized(),
+                        "AccessDenied".GetLocalized(),
                         "SubDirectoryAccessDenied".GetLocalized());
                     return -1;
                 }
@@ -1584,16 +1591,20 @@ namespace Files.ViewModels
                 }
                 else
                 {
-                    List<ListedItem> fileList = await Win32StorageEnumerator.ListEntries(path, returnformat, hFile, findData, Connection, cancellationToken, -1, intermediateAction: async (intermediateList) =>
+                    await Task.Run(async () =>
                     {
-                        filesAndFolders.AddRange(intermediateList);
+                        List<ListedItem> fileList = await Win32StorageEnumerator.ListEntries(path, returnformat, hFile, findData, Connection, cancellationToken, -1, intermediateAction: async (intermediateList) =>
+                        {
+                            filesAndFolders.AddRange(intermediateList);
+                            await OrderFilesAndFoldersAsync();
+                            await ApplyFilesAndFoldersChangesAsync();
+                        });
+
+                        filesAndFolders.AddRange(fileList);
                         await OrderFilesAndFoldersAsync();
                         await ApplyFilesAndFoldersChangesAsync();
                     });
 
-                    filesAndFolders.AddRange(fileList);
-                    await OrderFilesAndFoldersAsync();
-                    await ApplyFilesAndFoldersChangesAsync();
                     return 0;
                 }
             }
@@ -1607,22 +1618,25 @@ namespace Files.ViewModels
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             string returnformat = Enum.Parse<TimeStyle>(localSettings.Values[Constants.LocalSettings.DateTimeFormat].ToString()) == TimeStyle.Application ? "D" : "g";
 
-            List<ListedItem> finalList = await UniversalStorageEnumerator.ListEntries(
-                rootFolder,
-                currentStorageFolder,
-                returnformat,
-                sourcePageType,
-                cancellationToken,
-                -1,
-                async (intermediateList) =>
+            await Task.Run(async () =>
             {
-                filesAndFolders.AddRange(intermediateList);
+                List<ListedItem> finalList = await UniversalStorageEnumerator.ListEntries(
+                    rootFolder,
+                    currentStorageFolder,
+                    returnformat,
+                    sourcePageType,
+                    cancellationToken,
+                    -1,
+                    async (intermediateList) =>
+                {
+                    filesAndFolders.AddRange(intermediateList);
+                    await OrderFilesAndFoldersAsync();
+                    await ApplyFilesAndFoldersChangesAsync();
+                });
+                filesAndFolders.AddRange(finalList);
                 await OrderFilesAndFoldersAsync();
                 await ApplyFilesAndFoldersChangesAsync();
             });
-            filesAndFolders.AddRange(finalList);
-            await OrderFilesAndFoldersAsync();
-            await ApplyFilesAndFoldersChangesAsync();
 
             stopwatch.Stop();
             Debug.WriteLine($"Enumerating items in {path} (device) completed in {stopwatch.ElapsedMilliseconds} milliseconds.\n");
@@ -1707,8 +1721,10 @@ namespace Files.ViewModels
                 return;
             }
 
+            var hasSyncStatus = syncStatus != CloudDriveSyncStatus.NotSynced && syncStatus != CloudDriveSyncStatus.Unknown;
+
             var cts = new CancellationTokenSource();
-            _ = Windows.System.Threading.ThreadPool.RunAsync((x) => ProcessOperationQueue(cts.Token));
+            _ = Windows.System.Threading.ThreadPool.RunAsync((x) => ProcessOperationQueue(cts.Token, hasSyncStatus));
 
             aWatcherAction = Windows.System.Threading.ThreadPool.RunAsync((x) =>
             {
@@ -1717,7 +1733,7 @@ namespace Files.ViewModels
                 buff = new byte[4096];
                 int notifyFilters = FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
 
-                if (syncStatus != CloudDriveSyncStatus.NotSynced && syncStatus != CloudDriveSyncStatus.Unknown)
+                if (hasSyncStatus)
                 {
                     notifyFilters |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
                 }
@@ -1778,10 +1794,10 @@ namespace Files.ViewModels
 
                                 operationQueue.Enqueue((action, FileName));
 
-                                operationEvent.Set();
-
                                 offset += notifyInfo.NextEntryOffset;
                             } while (notifyInfo.NextEntryOffset != 0 && x.Status != AsyncStatus.Canceled);
+
+                            operationEvent.Set();
 
                             //ResetEvent(overlapped.hEvent);
                             Debug.WriteLine("Task running...");
@@ -1797,7 +1813,7 @@ namespace Files.ViewModels
             Debug.WriteLine("Task exiting...");
         }
 
-        private async void ProcessOperationQueue(CancellationToken cancellationToken)
+        private async void ProcessOperationQueue(CancellationToken cancellationToken, bool hasSyncStatus)
         {
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             string returnformat = Enum.Parse<TimeStyle>(localSettings.Values[Constants.LocalSettings.DateTimeFormat].ToString()) == TimeStyle.Application ? "D" : "g";
@@ -1808,16 +1824,20 @@ namespace Files.ViewModels
             const uint FILE_ACTION_RENAMED_OLD_NAME = 0x00000004;
             const uint FILE_ACTION_RENAMED_NEW_NAME = 0x00000005;
 
+            const int UPDATE_BATCH_SIZE = 32;
             var sampler = new IntervalSampler(200);
+            var updateQueue = new Queue<string>();
             bool anyEdits = false;
 
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (operationEvent.Wait(200, cancellationToken))
+                    if (await operationEvent.WaitAsync(200, cancellationToken))
                     {
                         operationEvent.Reset();
+                        itemLoadEvent.Reset();
+
                         while (operationQueue.TryDequeue(out var operation))
                         {
                             if (cancellationToken.IsCancellationRequested) break;
@@ -1832,7 +1852,10 @@ namespace Files.ViewModels
                                         break;
 
                                     case FILE_ACTION_MODIFIED:
-                                        await UpdateFileOrFolderAsync(operation.FileName);
+                                        if (!updateQueue.Contains(operation.FileName))
+                                        {
+                                            updateQueue.Enqueue(operation.FileName);
+                                        }
                                         break;
 
                                     case FILE_ACTION_REMOVED:
@@ -1854,6 +1877,29 @@ namespace Files.ViewModels
                                 anyEdits = false;
                             }
                         }
+
+                        var itemsToUpdate = new List<string>();
+                        for (var i = 0; i < UPDATE_BATCH_SIZE && updateQueue.Count > 0; i++)
+                        {
+                            itemsToUpdate.Add(updateQueue.Dequeue());
+                        }
+
+                        await UpdateFilesOrFoldersAsync(itemsToUpdate, hasSyncStatus);
+                        itemLoadEvent.Set();
+                    }
+
+
+                    if (updateQueue.Count > 0)
+                    {
+                        itemLoadEvent.Reset();
+                        var itemsToUpdate = new List<string>();
+                        for (var i = 0; i < UPDATE_BATCH_SIZE && updateQueue.Count > 0; i++)
+                        {
+                            itemsToUpdate.Add(updateQueue.Dequeue());
+                        }
+
+                        await UpdateFilesOrFoldersAsync(itemsToUpdate, hasSyncStatus);
+                        itemLoadEvent.Set();
                     }
 
                     if (anyEdits && sampler.CheckNow())
@@ -1952,6 +1998,11 @@ namespace Files.ViewModels
 
         private async Task AddFileOrFolderAsync(ListedItem item)
         {
+            if (item == null)
+            {
+                return;
+            }
+
             try
             {
                 await enumFolderSemaphore.WaitAsync(semaphoreCTS.Token);
@@ -1961,17 +2012,8 @@ namespace Files.ViewModels
                 return;
             }
 
-            try
-            {
-                if (item != null)
-                {
-                    filesAndFolders.Add(item);
-                }
-            }
-            finally
-            {
-                enumFolderSemaphore.Release();
-            }
+            filesAndFolders.Add(item);
+            enumFolderSemaphore.Release();
         }
 
         private async Task AddFileOrFolderAsync(string fileOrFolderPath, string dateReturnFormat)
@@ -2008,13 +2050,10 @@ namespace Files.ViewModels
                 listedItem = await Win32StorageEnumerator.GetFile(findData, Directory.GetParent(fileOrFolderPath).FullName, dateReturnFormat, Connection, addFilesCTS.Token);
             }
 
-            if (listedItem != null)
-            {
-                filesAndFolders.Add(listedItem);
-            }
+            await AddFileOrFolderAsync(listedItem);
         }
 
-        private async Task UpdateFileOrFolderAsync(ListedItem item)
+        private async Task<(ListedItem Item, CloudDriveSyncStatus? SyncStatus, long? Size, DateTimeOffset Created, DateTimeOffset Modified)?> GetFileOrFolderUpdateInfoAsync(ListedItem item, bool hasSyncStatus)
         {
             IStorageItem storageItem = null;
             if (item.PrimaryItemAttribute == StorageItemTypes.File)
@@ -2027,30 +2066,31 @@ namespace Files.ViewModels
             }
             if (storageItem != null)
             {
-                var syncStatus = await CheckCloudDriveSyncStatusAsync(storageItem);
-                await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(async () =>
-                {
-                    item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(syncStatus);
+                CloudDriveSyncStatus? syncStatus = hasSyncStatus ? await CheckCloudDriveSyncStatusAsync(storageItem) : null;
+                long? size = null;
+                DateTimeOffset created = default, modified = default;
 
-                    if (storageItem.IsOfType(StorageItemTypes.File))
-                    {
-                        var properties = await storageItem.AsBaseStorageFile().GetBasicPropertiesAsync();
-                        item.FileSizeBytes = (long)properties.Size;
-                        item.FileSize = ByteSizeLib.ByteSize.FromBytes(item.FileSizeBytes).ToBinaryString().ConvertSizeAbbreviation();
-                        item.ItemDateModifiedReal = properties.DateModified;
-                        item.ItemDateCreatedReal = properties.ItemDate;
-                    }
-                    else if (storageItem.IsOfType(StorageItemTypes.Folder))
-                    {
-                        var properties = await storageItem.AsBaseStorageFolder().GetBasicPropertiesAsync();
-                        item.ItemDateModifiedReal = properties.DateModified;
-                        item.ItemDateCreatedReal = properties.ItemDate;
-                    }
-                });
+                if (storageItem.IsOfType(StorageItemTypes.File))
+                {
+                    var properties = await storageItem.AsBaseStorageFile().GetBasicPropertiesAsync();
+                    size = (long)properties.Size;
+                    modified = properties.DateModified;
+                    created = properties.ItemDate;
+                }
+                else if (storageItem.IsOfType(StorageItemTypes.Folder))
+                {
+                    var properties = await storageItem.AsBaseStorageFolder().GetBasicPropertiesAsync();
+                    modified = properties.DateModified;
+                    created = properties.ItemDate;
+                }
+
+                return (item, syncStatus, size, created, modified);
             }
+
+            return null;
         }
 
-        private async Task UpdateFileOrFolderAsync(string path)
+        private async Task UpdateFilesOrFoldersAsync(IEnumerable<string> paths, bool hasSyncStatus)
         {
             try
             {
@@ -2063,12 +2103,32 @@ namespace Files.ViewModels
 
             try
             {
-                var matchingItem = filesAndFolders.FirstOrDefault(x => x.ItemPath.Equals(path, StringComparison.OrdinalIgnoreCase));
+                var matchingItems = filesAndFolders.Where(x => paths.Any(p => p.Equals(x.ItemPath, StringComparison.OrdinalIgnoreCase)));
+                var results = await Task.WhenAll(matchingItems.Select(x => GetFileOrFolderUpdateInfoAsync(x, hasSyncStatus)));
 
-                if (matchingItem != null)
+                await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
                 {
-                    await UpdateFileOrFolderAsync(matchingItem);
-                }
+                    foreach (var result in results)
+                    {
+                        if (result != null)
+                        {
+                            var item = result.Value.Item;
+                            item.ItemDateModifiedReal = result.Value.Modified;
+                            item.ItemDateCreatedReal = result.Value.Created;
+
+                            if (result.Value.SyncStatus != null)
+                            {
+                                item.SyncStatusUI = CloudDriveSyncStatusUI.FromCloudDriveSyncStatus(result.Value.SyncStatus.Value);
+                            }
+
+                            if (result.Value.Size != null)
+                            {
+                                item.FileSizeBytes = result.Value.Size.Value;
+                                item.FileSize = ByteSizeLib.ByteSize.FromBytes(item.FileSizeBytes).ToBinaryString().ConvertSizeAbbreviation();
+                            }
+                        }
+                    }
+                }, Windows.System.DispatcherQueuePriority.Low);
             }
             finally
             {
@@ -2126,7 +2186,6 @@ namespace Files.ViewModels
             filesAndFolders.Clear();
             IsLoadingItems = true;
             IsSearchResults = true;
-            itemLoadEvent.Reset();
             await ApplyFilesAndFoldersChangesAsync();
             EmptyTextType = EmptyTextType.None;
 
@@ -2147,7 +2206,6 @@ namespace Files.ViewModels
 
             ItemLoadStatusChanged?.Invoke(this, new ItemLoadStatusChangedEventArgs() { Status = ItemLoadStatusChangedEventArgs.ItemLoadStatus.Complete });
             IsLoadingItems = false;
-            itemLoadEvent.Set();
         }
 
         public void CancelSearch()

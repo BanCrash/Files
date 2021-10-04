@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.ApplicationModel.Resources.Core;
 using Windows.Storage;
 using Windows.System;
@@ -598,6 +599,12 @@ namespace Files.Views
                     }
                     break;
 
+                case (true, true, false, true, VirtualKey.C):
+                    {
+                        SlimContentPage?.CommandsViewModel.CopyPathOfSelectedItemCommand.Execute(null);
+                        break;
+                    }
+
                 case (true, true, false, true, VirtualKey.N): // ctrl + shift + n, new item
                     if (InstanceViewModel.CanCreateFileInPage)
                     {
@@ -616,11 +623,10 @@ namespace Files.Views
                 case (false, true, false, true, VirtualKey.Delete): // shift + delete, PermanentDelete
                     if (ContentPage.IsItemSelected && !NavToolbarViewModel.IsEditModeEnabled && !InstanceViewModel.IsPageTypeSearchResults)
                     {
-                        await FilesystemHelpers.DeleteItemsAsync(
-                            ContentPage.SelectedItems.Select((item) => StorageItemHelpers.FromPathAndType(
-                                item.ItemPath,
-                                item.PrimaryItemAttribute == StorageItemTypes.File ? FilesystemItemType.File : FilesystemItemType.Directory)).ToList(),
-                            true, true, true);
+                        var items = await Task.Run(() => SlimContentPage.SelectedItems.ToList().Select((item) => StorageItemHelpers.FromPathAndType(
+                            item.ItemPath,
+                            item.PrimaryItemAttribute == StorageItemTypes.File ? FilesystemItemType.File : FilesystemItemType.Directory)));
+                        await FilesystemHelpers.DeleteItemsAsync(items, true, true, true);
                     }
 
                     break;
@@ -661,11 +667,10 @@ namespace Files.Views
                 case (false, false, false, true, VirtualKey.Delete): // delete, delete item
                     if (ContentPage.IsItemSelected && !ContentPage.IsRenamingItem && !InstanceViewModel.IsPageTypeSearchResults)
                     {
-                        await FilesystemHelpers.DeleteItemsAsync(
-                            ContentPage.SelectedItems.Select((item) => StorageItemHelpers.FromPathAndType(
-                                item.ItemPath,
-                                item.PrimaryItemAttribute == StorageItemTypes.File ? FilesystemItemType.File : FilesystemItemType.Directory)).ToList(),
-                            true, false, true);
+                        var items = await Task.Run(() => SlimContentPage.SelectedItems.ToList().Select((item) => StorageItemHelpers.FromPathAndType(
+                            item.ItemPath,
+                            item.PrimaryItemAttribute == StorageItemTypes.File ? FilesystemItemType.File : FilesystemItemType.Directory)));
+                        await FilesystemHelpers.DeleteItemsAsync(items, true, false, true);
                     }
 
                     break;

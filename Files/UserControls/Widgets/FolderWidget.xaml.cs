@@ -140,7 +140,7 @@ namespace Files.UserControls.Widgets
 
         private async Task GetItemsAddedIcon()
         {
-            foreach (var item in ItemsAdded.ToList())
+            foreach (var item in ItemsAdded.ToList()) // ToList() is necessary
             {
                 item.SelectCommand = LibraryCardClicked;
                 item.AutomationProperties = item.Text;
@@ -150,6 +150,8 @@ namespace Files.UserControls.Widgets
 
         private async void FolderWidget_Loaded(object sender, RoutedEventArgs e)
         {
+            Loaded -= FolderWidget_Loaded;
+
             ItemsAdded.BeginBulkOperation();
             ItemsAdded.Add(new LibraryCardItem
             {
@@ -185,7 +187,6 @@ namespace Files.UserControls.Widgets
             await GetItemsAddedIcon();
 
             ItemsAdded.EndBulkOperation();
-            Loaded -= FolderWidget_Loaded;
         }
 
         private void FolderWidget_Unloaded(object sender, RoutedEventArgs e)

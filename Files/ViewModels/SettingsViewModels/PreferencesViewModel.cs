@@ -1,11 +1,14 @@
 ﻿using Files.DataModels;
 using Files.Enums;
+using Files.Helpers;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 using Microsoft.Toolkit.Mvvm.Input;
 using Microsoft.Toolkit.Uwp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.System;
 
@@ -15,7 +18,7 @@ namespace Files.ViewModels.SettingsViewModels
     {
         private int selectedLanguageIndex = App.AppSettings.DefaultLanguages.IndexOf(App.AppSettings.DefaultLanguage);
         private bool showRestartControl;
-        private Terminal selectedTerminal = App.AppSettings.TerminalController.Model.GetDefaultTerminal();
+        private Terminal selectedTerminal = App.TerminalController.Model.GetDefaultTerminal();
         private bool showConfirmDeleteDialog = App.AppSettings.ShowConfirmDeleteDialog;
         private bool openFoldersNewTab = App.AppSettings.OpenFoldersNewTab;
         private int selectedDateFormatIndex = (int)Enum.Parse(typeof(TimeStyle), App.AppSettings.DisplayedTimeStyle.ToString());
@@ -23,7 +26,7 @@ namespace Files.ViewModels.SettingsViewModels
         public PreferencesViewModel()
         {
             DefaultLanguages = App.AppSettings.DefaultLanguages;
-            Terminals = App.AppSettings.TerminalController.Model.Terminals;
+            Terminals = App.TerminalController.Model.Terminals;
 
             DateFormats = new List<string>
             {
@@ -87,13 +90,13 @@ namespace Files.ViewModels.SettingsViewModels
             {
                 if (SetProperty(ref selectedTerminal, value))
                 {
-                    App.AppSettings.TerminalController.Model.DefaultTerminalName = value.Name;
-                    App.AppSettings.TerminalController.SaveModel();
+                    App.TerminalController.Model.DefaultTerminalName = value.Name;
+                    App.TerminalController.SaveModel();
                 }
             }
         }
 
-        public RelayCommand EditTerminalApplicationsCommand => new RelayCommand(() => LaunchTerminalsConfigFile());
+        public IRelayCommand EditTerminalApplicationsCommand => new AsyncRelayCommand(() => LaunchTerminalsConfigFile());
 
         public bool ShowConfirmDeleteDialog
         {
@@ -125,10 +128,22 @@ namespace Files.ViewModels.SettingsViewModels
             }
         }
 
-        private async void LaunchTerminalsConfigFile()
+        private async Task LaunchTerminalsConfigFile()
         {
-            await Launcher.LaunchFileAsync(
-                await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appdata:///local/settings/terminal.json")));
+            var configFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appdata:///local/settings/terminal.json"));
+            if (!await Launcher.LaunchFileAsync(configFile))
+            {
+                var connection = await AppServiceConnectionHelper.Instance;
+                if (connection != null)
+                {
+                    await connection.SendMessageAsync(new ValueSet()
+                    {
+                        { "Arguments", "InvokeVerb" },
+                        { "FilePath", configFile.Path },
+                        { "Verb", "open" }
+                    });
+                }
+            }
         }
     }
 }

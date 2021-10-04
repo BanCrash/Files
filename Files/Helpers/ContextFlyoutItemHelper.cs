@@ -271,7 +271,7 @@ namespace Files.Helpers
                         },
                         new ContextMenuFlyoutItemViewModel()
                         {
-                            Text = "BaseLayoutContextFlyoutSortBySyncStatus/Text".GetLocalized(),
+                            Text = "SyncStatus".GetLocalized(),
                             IsChecked = itemViewModel.IsSortedBySyncStatus,
                             Command = new RelayCommand(() => itemViewModel.IsSortedBySyncStatus = true),
                             ShowItem = currentInstanceViewModel.IsPageTypeCloudDrive,
@@ -421,7 +421,7 @@ namespace Files.Helpers
                         },
                         new ContextMenuFlyoutItemViewModel()
                         {
-                            Text = "BaseLayoutContextFlyoutSortBySyncStatus/Text".GetLocalized(),
+                            Text = "SyncStatuss".GetLocalized(),
                             IsChecked = currentInstanceViewModel.FolderSettings.DirectoryGroupOption == GroupOption.SyncStatus,
                             ShowItem = currentInstanceViewModel.IsPageTypeCloudDrive,
                             Command = currentInstanceViewModel.FolderSettings.ChangeGroupOptionCommand,
@@ -629,7 +629,7 @@ namespace Files.Helpers
                     Tag = "OpenWith",
                     CollapseLabel = true,
                     ShowInSearchPage = true,
-                    ShowItem = selectedItems.All(i => i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.File && !i.IsShortcutItem && !i.IsExecutable),
+                    ShowItem = selectedItems.All(i => (i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.File && !i.IsShortcutItem && !i.IsExecutable) || (i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.Folder && i.IsZipItem)),
                 },
                 new ContextMenuFlyoutItemViewModel()
                 {
@@ -645,7 +645,7 @@ namespace Files.Helpers
                         }
                     },
                     ShowInSearchPage = true,
-                    ShowItem = selectedItems.All(i => i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.File && !i.IsShortcutItem && !i.IsExecutable),
+                    ShowItem = selectedItems.All(i => (i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.File && !i.IsShortcutItem && !i.IsExecutable) || (i.PrimaryItemAttribute == Windows.Storage.StorageItemTypes.Folder && i.IsZipItem)),
                 },
                 new ContextMenuFlyoutItemViewModel()
                 {

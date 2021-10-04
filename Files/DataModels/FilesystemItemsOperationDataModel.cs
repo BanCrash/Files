@@ -1,7 +1,9 @@
 ﻿using Files.Enums;
 using Files.Helpers;
 using Files.ViewModels.Dialogs;
+using Microsoft.Toolkit.Uwp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -57,47 +59,36 @@ namespace Files.DataModels
             this.ConflictingItems = conflictingItems;
         }
 
-        public async Task<List<FilesystemOperationItemViewModel>> ToItems(Action updatePrimaryButtonEnabled, Action optionGenerateNewName, Action optionReplaceExisting, Action optionSkip)
+        public List<FilesystemOperationItemViewModel> ToItems(Action updatePrimaryButtonEnabled, Action optionGenerateNewName, Action optionReplaceExisting, Action optionSkip)
         {
             List<FilesystemOperationItemViewModel> items = new List<FilesystemOperationItemViewModel>();
-
             List<FilesystemItemsOperationItemModel> nonConflictingItems = IncomingItems.Except(ConflictingItems).ToList();
 
             // Add conflicting items first
-            foreach (var item in ConflictingItems)
-            {
-                var iconData = await FileThumbnailHelper.LoadIconFromPathAsync(item.SourcePath, 64u, Windows.Storage.FileProperties.ThumbnailMode.ListView);
-
-                items.Add(new FilesystemOperationItemViewModel(updatePrimaryButtonEnabled, optionGenerateNewName, optionReplaceExisting, optionSkip)
+            items.AddRange(ConflictingItems.Select((item, index) => 
+                new FilesystemOperationItemViewModel(updatePrimaryButtonEnabled, optionGenerateNewName, optionReplaceExisting, optionSkip)
                 {
                     IsConflict = true,
-                    ItemIcon = iconData != null ? await iconData.ToBitmapAsync() : null,
                     SourcePath = item.SourcePath,
                     DestinationPath = item.DestinationPath,
                     DisplayFileName = item.DisplayFileName,
                     ConflictResolveOption = FileNameConflictResolveOptionType.GenerateNewName,
                     ItemOperation = item.OperationType,
                     ActionTaken = false
-                });
-            }
+                }));
 
             // Then add non-conflicting items
-            foreach (var item in nonConflictingItems)
-            {
-                var iconData = await FileThumbnailHelper.LoadIconFromPathAsync(item.SourcePath, 64u, Windows.Storage.FileProperties.ThumbnailMode.ListView);
-
-                items.Add(new FilesystemOperationItemViewModel(updatePrimaryButtonEnabled, optionGenerateNewName, optionReplaceExisting, optionSkip)
+            items.AddRange(nonConflictingItems.Select((item, index) =>
+                new FilesystemOperationItemViewModel(updatePrimaryButtonEnabled, optionGenerateNewName, optionReplaceExisting, optionSkip)
                 {
                     IsConflict = false,
-                    ItemIcon = iconData != null ? await iconData.ToBitmapAsync() : null,
                     SourcePath = item.SourcePath,
                     DestinationPath = item.DestinationPath,
                     DisplayFileName = item.DisplayFileName,
                     ConflictResolveOption = FileNameConflictResolveOptionType.NotAConflict,
                     ItemOperation = item.OperationType,
                     ActionTaken = true
-                });
-            }
+                }));
 
             return items;
         }

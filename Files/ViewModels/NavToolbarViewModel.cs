@@ -275,7 +275,11 @@ namespace Files.ViewModels
         public string PathText
         {
             get => pathText;
-            set => SetProperty(ref pathText, value);
+            set
+            {
+                pathText = value;
+                OnPropertyChanged(nameof(PathText));
+            }
         }
 
         public ObservableCollection<ListedItem> NavigationBarSuggestions = new ObservableCollection<ListedItem>();
@@ -488,9 +492,11 @@ namespace Files.ViewModels
                 {
                     EditModeEnabled?.Invoke(this, new EventArgs());
 
-                    var visiblePath = NavToolbar.FindDescendant("VisiblePath") as Control;
+                    var visiblePath = NavToolbar.FindDescendant<AutoSuggestBox>(x => x.Name == "VisiblePath");
                     visiblePath?.Focus(FocusState.Programmatic);
                     visiblePath?.FindDescendant<TextBox>()?.SelectAll();
+
+                    AddressBarTextEntered?.Invoke(this, new AddressBarTextEnteredEventArgs() { AddressBarTextField = visiblePath });
                 }
                 else
                 {
@@ -802,7 +808,7 @@ namespace Files.ViewModels
                         var matchingDrive = App.DrivesManager.Drives.FirstOrDefault(x => PathNormalization.NormalizePath(currentInput).StartsWith(PathNormalization.NormalizePath(x.Path)));
                         if (matchingDrive != null && matchingDrive.Type == DataModels.NavigationControlItems.DriveType.CDRom && matchingDrive.MaxSpace == ByteSizeLib.ByteSize.FromBytes(0))
                         {
-                            bool ejectButton = await DialogDisplayHelper.ShowDialogAsync("InsertDiscDialog/Title".GetLocalized(), string.Format("InsertDiscDialog/Text".GetLocalized(), matchingDrive.Path), "InsertDiscDialog/OpenDriveButton".GetLocalized(), "InsertDiscDialog/CloseDialogButton".GetLocalized());
+                            bool ejectButton = await DialogDisplayHelper.ShowDialogAsync("InsertDiscDialog/Title".GetLocalized(), string.Format("InsertDiscDialog/Text".GetLocalized(), matchingDrive.Path), "InsertDiscDialog/OpenDriveButton".GetLocalized(), "Close".GetLocalized());
                             if (ejectButton)
                             {
                                 await DriveHelpers.EjectDeviceAsync(matchingDrive.Path);
@@ -832,7 +838,7 @@ namespace Files.ViewModels
                                 : shellPage.FilesystemViewModel.WorkingDirectory;
 
                             // Launch terminal application if possible
-                            foreach (var terminal in App.AppSettings.TerminalController.Model.Terminals)
+                            foreach (var terminal in App.TerminalController.Model.Terminals)
                             {
                                 if (terminal.Path.Equals(currentInput, StringComparison.OrdinalIgnoreCase)
                                     || terminal.Path.Equals(currentInput + ".exe", StringComparison.OrdinalIgnoreCase) || terminal.Name.Equals(currentInput, StringComparison.OrdinalIgnoreCase))
