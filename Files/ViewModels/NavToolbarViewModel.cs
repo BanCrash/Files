@@ -323,11 +323,27 @@ namespace Files.ViewModels
             }
         }
 
+        private PointerRoutedEventArgs pointerRoutedEventArgs;
+
         public NavToolbarViewModel()
         {
             dragOverTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-            SearchBox.SuggestionChosen += SearchRegion_SuggestionChosen;
             SearchBox.Escaped += SearchRegion_Escaped;
+            UserSettingsService.OnSettingChangedEvent += UserSettingsService_OnSettingChangedEvent;
+        }
+
+        private void UserSettingsService_OnSettingChangedEvent(object sender, EventArguments.SettingChangedEventArgs e)
+        {
+            switch (e.settingName)
+            {
+                case nameof(ShowFoldersWidget):
+                case nameof(ShowDrivesWidget):
+                case nameof(ShowBundlesWidget):
+                case nameof(ShowRecentFilesWidget):
+                    RefreshWidgetsRequested?.Invoke(this, EventArgs.Empty);
+                    OnPropertyChanged(e.settingName);
+                    break;
+            }
         }
 
         private DispatcherQueueTimer dragOverTimer;
@@ -492,7 +508,7 @@ namespace Files.ViewModels
 
             if (!storageItems.Any(storageItem =>
                 !string.IsNullOrEmpty(storageItem?.Path) &&
-                storageItem.Path.Replace(pathBoxItem.Path, string.Empty).
+                storageItem.Path.Replace(pathBoxItem.Path, string.Empty, StringComparison.Ordinal).
                 Trim(Path.DirectorySeparatorChar).
                 Contains(Path.DirectorySeparatorChar)))
             {
@@ -525,7 +541,7 @@ namespace Files.ViewModels
             {
                 if (value)
                 {
-                    EditModeEnabled?.Invoke(this, new EventArgs());
+                    EditModeEnabled?.Invoke(this, EventArgs.Empty);
 
                     var visiblePath = NavToolbar.FindDescendant<AutoSuggestBox>(x => x.Name == "VisiblePath");
                     visiblePath?.Focus(FocusState.Programmatic);
@@ -604,9 +620,36 @@ namespace Files.ViewModels
             (this as INavigationToolbar).IsEditModeEnabled = false;
         }
 
-        public void PathBoxItem_Tapped(object sender, TappedRoutedEventArgs e)
+        public void PathBoxItem_PointerPressed(object sender, PointerRoutedEventArgs e)
+		{
+            if (e.Pointer.PointerDeviceType == Windows.Devices.Input.PointerDeviceType.Mouse)
+            {
+                Windows.UI.Input.PointerPoint ptrPt = e.GetCurrentPoint(NavToolbar);
+                if (ptrPt.Properties.IsMiddleButtonPressed)
+                {
+                    pointerRoutedEventArgs = e;
+                } else
+                {
+                    pointerRoutedEventArgs = null;
+                }
+            }
+        }
+
+        public async void PathBoxItem_Tapped(object sender, TappedRoutedEventArgs e)
         {
             var itemTappedPath = ((sender as Border).DataContext as PathBoxItem).Path;
+
+            if (pointerRoutedEventArgs != null)
+            {
+                await Windows.UI.Core.CoreWindow.GetForCurrentThread().Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Low, async () =>
+                {
+                    await MainPageViewModel.AddNewTabByPathAsync(typeof(PaneHolderPage), itemTappedPath);
+                });
+                e.Handled = true;
+                pointerRoutedEventArgs = null;
+                return;
+            }
+
             ToolbarPathItemInvoked?.Invoke(this, new PathNavigationEventArgs()
             {
                 ItemPath = itemTappedPath
@@ -642,7 +685,7 @@ namespace Files.ViewModels
 
         #region WidgetsPage Widgets
 
-        public bool ShowFolderWidgetWidget
+        public bool ShowFoldersWidget
         {
             get => UserSettingsService.WidgetsSettingsService.ShowFoldersWidget;
             set
@@ -716,8 +759,6 @@ namespace Files.ViewModels
 
             CloseSearchBox();
         }
-
-        private void SearchRegion_SuggestionChosen(ISearchBox sender, SearchBoxSuggestionChosenEventArgs args) => IsSearchBoxVisible = false;
 
         private void SearchRegion_Escaped(object sender, ISearchBox searchBox) => IsSearchBoxVisible = false;
 
@@ -816,9 +857,9 @@ namespace Files.ViewModels
 
         public async Task CheckPathInput(string currentInput, string currentSelectedPath, IShellPage shellPage)
         {
-            currentInput = currentInput.Replace("\\\\", "\\");
+            currentInput = currentInput.Replace("\\\\", "\\", StringComparison.Ordinal);
 
-            if (currentInput.StartsWith("\\") && !currentInput.StartsWith("\\\\"))
+            if (currentInput.StartsWith('\\') && !currentInput.StartsWith("\\\\", StringComparison.Ordinal))
             {
                 currentInput = currentInput.Insert(0, "\\");
             }
@@ -847,7 +888,7 @@ namespace Files.ViewModels
                     var resFolder = await FilesystemTasks.Wrap(() => StorageFileExtensions.DangerousGetFolderWithPathFromPathAsync(currentInput, item));
                     if (resFolder || FolderHelpers.CheckFolderAccessWithWin32(currentInput))
                     {
-                        var matchingDrive = App.DrivesManager.Drives.FirstOrDefault(x => PathNormalization.NormalizePath(currentInput).StartsWith(PathNormalization.NormalizePath(x.Path)));
+                        var matchingDrive = App.DrivesManager.Drives.FirstOrDefault(x => PathNormalization.NormalizePath(currentInput).StartsWith(PathNormalization.NormalizePath(x.Path), StringComparison.Ordinal));
                         if (matchingDrive != null && matchingDrive.Type == DataModels.NavigationControlItems.DriveType.CDRom && matchingDrive.MaxSpace == ByteSizeLib.ByteSize.FromBytes(0))
                         {
                             bool ejectButton = await DialogDisplayHelper.ShowDialogAsync("InsertDiscDialog/Title".GetLocalized(), string.Format("InsertDiscDialog/Text".GetLocalized(), matchingDrive.Path), "InsertDiscDialog/OpenDriveButton".GetLocalized(), "Close".GetLocalized());
@@ -933,33 +974,33 @@ namespace Files.ViewModels
                     var folderPath = PathNormalization.GetParentDir(expandedPath) ?? expandedPath;
                     var folder = await shellpage.FilesystemViewModel.GetFolderWithPathFromPathAsync(folderPath);
                     var currPath = await folder.Result.GetFoldersWithPathAsync(Path.GetFileName(expandedPath), (uint)maxSuggestions);
-                    if (currPath.Count() >= maxSuggestions)
+                    if (currPath.Count >= maxSuggestions)
                     {
                         suggestions = currPath.Select(x => new ListedItem(null)
                         {
                             ItemPath = x.Path,
-                            ItemName = x.Folder.DisplayName
+                            ItemNameRaw = x.Folder.DisplayName
                         }).ToList();
                     }
                     else if (currPath.Any())
                     {
-                        var subPath = await currPath.First().GetFoldersWithPathAsync((uint)(maxSuggestions - currPath.Count()));
+                        var subPath = await currPath.First().GetFoldersWithPathAsync((uint)(maxSuggestions - currPath.Count));
                         suggestions = currPath.Select(x => new ListedItem(null)
                         {
                             ItemPath = x.Path,
-                            ItemName = x.Folder.DisplayName
+                            ItemNameRaw = x.Folder.DisplayName
                         }).Concat(
                             subPath.Select(x => new ListedItem(null)
                             {
                                 ItemPath = x.Path,
-                                ItemName = PathNormalization.Combine(currPath.First().Folder.DisplayName, x.Folder.DisplayName)
+                                ItemNameRaw = PathNormalization.Combine(currPath.First().Folder.DisplayName, x.Folder.DisplayName)
                             })).ToList();
                     }
                     else
                     {
                         suggestions = new List<ListedItem>() { new ListedItem(null) {
                         ItemPath = shellpage.FilesystemViewModel.WorkingDirectory,
-                        ItemName = "NavigationToolbarVisiblePathNoResults".GetLocalized() } };
+                        ItemNameRaw = "NavigationToolbarVisiblePathNoResults".GetLocalized() } };
                     }
 
                     // NavigationBarSuggestions becoming empty causes flickering of the suggestion box
@@ -971,7 +1012,7 @@ namespace Files.ViewModels
                         {
                             if (si < NavigationBarSuggestions.Count)
                             {
-                                NavigationBarSuggestions[si].ItemName = suggestions[si].ItemName;
+                                NavigationBarSuggestions[si].ItemNameRaw = suggestions[si].ItemNameRaw;
                                 NavigationBarSuggestions[si].ItemPath = suggestions[si].ItemPath;
                             }
                             else
@@ -987,11 +1028,11 @@ namespace Files.ViewModels
                     else
                     {
                         // At least an element in common, show animation
-                        foreach (var s in NavigationBarSuggestions.ExceptBy(suggestions, x => x.ItemName).ToList())
+                        foreach (var s in NavigationBarSuggestions.ExceptBy(suggestions, x => x.ItemNameRaw).ToList())
                         {
                             NavigationBarSuggestions.Remove(s);
                         }
-                        foreach (var s in suggestions.ExceptBy(NavigationBarSuggestions, x => x.ItemName).ToList())
+                        foreach (var s in suggestions.ExceptBy(NavigationBarSuggestions, x => x.ItemNameRaw).ToList())
                         {
                             NavigationBarSuggestions.Insert(suggestions.IndexOf(s), s);
                         }
@@ -1003,7 +1044,7 @@ namespace Files.ViewModels
                     NavigationBarSuggestions.Add(new ListedItem(null)
                     {
                         ItemPath = shellpage.FilesystemViewModel.WorkingDirectory,
-                        ItemName = "NavigationToolbarVisiblePathNoResults".GetLocalized()
+                        ItemNameRaw = "NavigationToolbarVisiblePathNoResults".GetLocalized()
                     });
                 }
             }
@@ -1048,8 +1089,8 @@ namespace Files.ViewModels
 
         public void Dispose()
         {
-            SearchBox.SuggestionChosen -= SearchRegion_SuggestionChosen;
             SearchBox.Escaped -= SearchRegion_Escaped;
+            UserSettingsService.OnSettingChangedEvent -= UserSettingsService_OnSettingChangedEvent;
 
             InstanceViewModel.FolderSettings.SortDirectionPreferenceUpdated -= FolderSettings_SortDirectionPreferenceUpdated;
             InstanceViewModel.FolderSettings.SortOptionPreferenceUpdated -= FolderSettings_SortOptionPreferenceUpdated;

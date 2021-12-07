@@ -21,8 +21,9 @@ namespace Files.Filesystem.Permissions
 
             ChangeInheritanceFlagsCommand = new RelayCommand<string>(x =>
             {
-                InheritanceFlags = Enum.Parse<InheritanceFlags>(x.Split(',')[0]);
-                PropagationFlags = Enum.Parse<PropagationFlags>(x.Split(',')[1]);
+                var parts = x.Split(',');
+                InheritanceFlags = Enum.Parse<InheritanceFlags>(parts[0]);
+                PropagationFlags = Enum.Parse<PropagationFlags>(parts[1]);
             });
 
             GrantedPermissions = GetGrantedPermissions();
@@ -381,7 +382,7 @@ namespace Files.Filesystem.Permissions
             }
             if (ret.Any())
             {
-                ret[0] = ret[0].First().ToString().ToUpper() + ret[0].Substring(1);
+                ret[0] = char.ToUpperInvariant(ret[0].First()) + ret[0].Substring(1);
             }
             return ret;
         }

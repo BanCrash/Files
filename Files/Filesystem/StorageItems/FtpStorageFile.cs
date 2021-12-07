@@ -18,7 +18,7 @@ namespace Files.Filesystem.StorageItems
         public FtpStorageFile(FtpItem ftpItem)
         {
             DateCreated = ftpItem.ItemDateCreatedReal;
-            Name = ftpItem.ItemName;
+            Name = ftpItem.ItemNameRaw;
             Path = ftpItem.ItemPath;
             FtpPath = FtpHelpers.GetFtpPath(ftpItem.ItemPath);
         }
@@ -178,28 +178,18 @@ namespace Files.Filesystem.StorageItems
                 if (accessMode == FileAccessMode.Read)
                 {
                     var inStream = await ftpClient.OpenReadAsync(FtpPath, cancellationToken);
-                    return new NonSeekableRandomAccessStream(inStream, (ulong)inStream.Length)
+                    return new NonSeekableRandomAccessStreamForRead(inStream, (ulong)inStream.Length)
                     {
                         DisposeCallback = () => ftpClient.Dispose()
                     };
                 }
                 else
                 {
-                    return new RandomAccessStreamWithFlushCallback()
+                    return new NonSeekableRandomAccessStreamForWrite(await ftpClient.OpenWriteAsync(FtpPath, cancellationToken))
                     {
-                        DisposeCallback = () => ftpClient.Dispose(),
-                        FlushCallback = UploadFile(ftpClient)
+                        DisposeCallback = () => ftpClient.Dispose()
                     };
                 }
-            });
-        }
-
-        private Func<IRandomAccessStream, IAsyncOperation<bool>> UploadFile(FtpClient ftpClient)
-        {
-            return (stream) => AsyncInfo.Run(async (cancellationToken) =>
-            {
-                await ftpClient.UploadAsync(stream.CloneStream().AsStream(), FtpPath, FtpRemoteExists.Overwrite);
-                return true;
             });
         }
 
@@ -267,7 +257,7 @@ namespace Files.Filesystem.StorageItems
                 }
 
                 var inStream = await ftpClient.OpenReadAsync(FtpPath, cancellationToken);
-                var nsStream = new NonSeekableRandomAccessStream(inStream, (ulong)inStream.Length)
+                var nsStream = new NonSeekableRandomAccessStreamForRead(inStream, (ulong)inStream.Length)
                 {
                     DisposeCallback = () => ftpClient.Dispose()
                 };
@@ -336,7 +326,7 @@ namespace Files.Filesystem.StorageItems
             get
             {
                 var itemType = "ItemTypeFile".GetLocalized();
-                if (Name.Contains("."))
+                if (Name.Contains(".", StringComparison.Ordinal))
                 {
                     itemType = System.IO.Path.GetExtension(Name).Trim('.') + " " + itemType;
                 }

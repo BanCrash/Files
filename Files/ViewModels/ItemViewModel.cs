@@ -58,6 +58,7 @@ namespace Files.ViewModels
         private List<ListedItem> filesAndFolders;
 
         private IUserSettingsService UserSettingsService { get; } = Ioc.Default.GetService<IUserSettingsService>();
+        private IFileTagsSettingsService FileTagsSettingsService { get; } = Ioc.Default.GetService<IFileTagsSettingsService>();
 
         // only used for Binding and ApplyFilesAndFoldersChangesAsync, don't manipulate on this!
         public BulkConcurrentObservableCollection<ListedItem> FilesAndFolders { get; }
@@ -359,7 +360,19 @@ namespace Files.ViewModels
             shouldDisplayFileExtensions =  UserSettingsService.PreferencesSettingsService.ShowFileExtensions;
 
             UserSettingsService.OnSettingChangedEvent += UserSettingsService_OnSettingChangedEvent;
+            FileTagsSettingsService.OnSettingImportedEvent += FileTagsSettingsService_OnSettingImportedEvent;
             AppServiceConnectionHelper.ConnectionChanged += AppServiceConnectionHelper_ConnectionChanged;
+        }
+
+        private async void FileTagsSettingsService_OnSettingImportedEvent(object sender, EventArgs e)
+        {
+            await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
+            {
+                if (WorkingDirectory != "Home".GetLocalized())
+                {
+                    RefreshItems(null);
+                }
+            });
         }
 
         private async void UserSettingsService_OnSettingChangedEvent(object sender, SettingChangedEventArgs e)
@@ -475,6 +488,15 @@ namespace Files.ViewModels
                 if (newIndex != -1)
                 {
                     FilesAndFolders.Insert(Math.Min(newIndex, FilesAndFolders.Count), item);
+                }
+                if (folderSettings.DirectoryGroupOption != GroupOption.None)
+                {
+                    var key = FilesAndFolders.ItemGroupKeySelector?.Invoke(item);
+                    var group = FilesAndFolders.GroupedCollection?.FirstOrDefault(x => x.Model.Key == key);
+                    if (group != null)
+                    {
+                        group.OrderOne(list => SortingHelper.OrderFileList(list, folderSettings.DirectorySortOption, folderSettings.DirectorySortDirection), item);
+                    }
                 }
                 UpdateEmptyTextType();
                 DirectoryInfoUpdated?.Invoke(this, EventArgs.Empty);
@@ -973,12 +995,12 @@ namespace Files.ViewModels
                                 {
                                     cts.Token.ThrowIfCancellationRequested();
                                     await LoadItemThumbnail(item, thumbnailSize, matchingStorageFolder);
-                                    if (matchingStorageFolder.DisplayName != item.ItemName && !matchingStorageFolder.DisplayName.StartsWith("$R"))
+                                    if (matchingStorageFolder.DisplayName != item.ItemName && !matchingStorageFolder.DisplayName.StartsWith("$R", StringComparison.Ordinal))
                                     {
                                         cts.Token.ThrowIfCancellationRequested();
                                         await CoreApplication.MainView.DispatcherQueue.EnqueueAsync(() =>
                                         {
-                                            item.ItemName = matchingStorageFolder.DisplayName;
+                                            item.ItemNameRaw = matchingStorageFolder.DisplayName;
                                         });
                                         await fileListCache.SaveFileDisplayNameToCache(item.ItemPath, matchingStorageFolder.DisplayName);
                                         if (folderSettings.DirectorySortOption == SortOption.Name && !isLoadingItems)
@@ -1153,7 +1175,7 @@ namespace Files.ViewModels
 
                 Connection ??= await AppServiceConnectionHelper.Instance;
 
-                if (path.ToLower().EndsWith(ShellLibraryItem.EXTENSION))
+                if (path.ToLowerInvariant().EndsWith(ShellLibraryItem.EXTENSION, StringComparison.Ordinal))
                 {
                     if (App.LibraryManager.TryGetLibrary(path, out LibraryLocationItem library) && !library.IsEmpty)
                     {
@@ -1182,7 +1204,7 @@ namespace Files.ViewModels
                     // Find and select README file
                     foreach (var item in filesAndFolders)
                     {
-                        if (item.PrimaryItemAttribute == StorageItemTypes.File && item.ItemName.Contains("readme", StringComparison.InvariantCultureIgnoreCase))
+                        if (item.PrimaryItemAttribute == StorageItemTypes.File && item.ItemName.Contains("readme", StringComparison.OrdinalIgnoreCase))
                         {
                             OnSelectionRequestedEvent?.Invoke(this, new List<ListedItem>() { item });
                             break;
@@ -1211,9 +1233,9 @@ namespace Files.ViewModels
 
             await GetDefaultItemIcons(folderSettings.GetIconSize());
 
-            var isRecycleBin = path.StartsWith(CommonPaths.RecycleBinPath);
+            var isRecycleBin = path.StartsWith(CommonPaths.RecycleBinPath, StringComparison.Ordinal);
             if (isRecycleBin ||
-                path.StartsWith(CommonPaths.NetworkFolderPath) ||
+                path.StartsWith(CommonPaths.NetworkFolderPath, StringComparison.Ordinal) ||
                 FtpHelpers.IsFtpPath(path))
             {
                 // Recycle bin and network are enumerated by the fulltrust process
@@ -1316,8 +1338,8 @@ namespace Files.ViewModels
             {
                 PrimaryItemAttribute = StorageItemTypes.Folder,
                 ItemPropertiesInitialized = true,
-                ItemName = path.StartsWith(CommonPaths.RecycleBinPath) ? ApplicationData.Current.LocalSettings.Values.Get("RecycleBin_Title", "Recycle Bin") :
-                           path.StartsWith(CommonPaths.NetworkFolderPath) ? "Network".GetLocalized() : isFtp ? "FTP" : "Unknown",
+                ItemNameRaw = path.StartsWith(CommonPaths.RecycleBinPath, StringComparison.Ordinal) ? ApplicationData.Current.LocalSettings.Values.Get("RecycleBin_Title", "Recycle Bin") :
+                           path.StartsWith(CommonPaths.NetworkFolderPath, StringComparison.Ordinal) ? "Network".GetLocalized() : isFtp ? "FTP" : "Unknown",
                 ItemDateModifiedReal = DateTimeOffset.Now, // Fake for now
                 ItemDateCreatedReal = DateTimeOffset.Now, // Fake for now
                 ItemType = "FileFolderListItem".GetLocalized(),
@@ -1526,7 +1548,7 @@ namespace Files.ViewModels
                 {
                     PrimaryItemAttribute = StorageItemTypes.Folder,
                     ItemPropertiesInitialized = true,
-                    ItemName = rootFolder.DisplayName,
+                    ItemNameRaw = rootFolder.DisplayName,
                     ItemDateModifiedReal = basicProps.DateModified,
                     ItemType = rootFolder.DisplayType,
                     FileImage = null,
@@ -1559,16 +1581,10 @@ namespace Files.ViewModels
                 try
                 {
                     FileTimeToSystemTime(ref findData.ftLastWriteTime, out var systemModifiedTimeOutput);
-                    itemModifiedDate = new DateTime(
-                        systemModifiedTimeOutput.Year, systemModifiedTimeOutput.Month, systemModifiedTimeOutput.Day,
-                        systemModifiedTimeOutput.Hour, systemModifiedTimeOutput.Minute, systemModifiedTimeOutput.Second, systemModifiedTimeOutput.Milliseconds,
-                        DateTimeKind.Utc);
+                    itemModifiedDate = systemModifiedTimeOutput.ToDateTime();
 
                     FileTimeToSystemTime(ref findData.ftCreationTime, out SYSTEMTIME systemCreatedTimeOutput);
-                    itemCreatedDate = new DateTime(
-                        systemCreatedTimeOutput.Year, systemCreatedTimeOutput.Month, systemCreatedTimeOutput.Day,
-                        systemCreatedTimeOutput.Hour, systemCreatedTimeOutput.Minute, systemCreatedTimeOutput.Second, systemCreatedTimeOutput.Milliseconds,
-                        DateTimeKind.Utc);
+                    itemCreatedDate = systemCreatedTimeOutput.ToDateTime();
                 }
                 catch (ArgumentException) { }
 
@@ -1584,7 +1600,7 @@ namespace Files.ViewModels
                 {
                     PrimaryItemAttribute = StorageItemTypes.Folder,
                     ItemPropertiesInitialized = true,
-                    ItemName = Path.GetFileName(path.TrimEnd('\\')),
+                    ItemNameRaw = Path.GetFileName(path.TrimEnd('\\')),
                     ItemDateModifiedReal = itemModifiedDate,
                     ItemDateCreatedReal = itemCreatedDate,
                     ItemType = folderTypeTextLocalized,
@@ -1950,7 +1966,7 @@ namespace Files.ViewModels
                 var binItem = new RecycleBinItem(null, dateReturnFormat)
                 {
                     PrimaryItemAttribute = StorageItemTypes.Folder,
-                    ItemName = item.FileName,
+                    ItemNameRaw = item.FileName,
                     ItemDateModifiedReal = item.ModifiedDate,
                     ItemDateCreatedReal = item.CreatedDate,
                     ItemDateDeletedReal = item.RecycleDate,
@@ -1974,23 +1990,7 @@ namespace Files.ViewModels
             else
             {
                 // File
-                string itemName;
-                if (UserSettingsService.PreferencesSettingsService.ShowFileExtensions && !item.FileName.EndsWith(".lnk") && !item.FileName.EndsWith(".url"))
-                {
-                    itemName = item.FileName; // never show extension for shortcuts
-                }
-                else
-                {
-                    if (item.FileName.StartsWith("."))
-                    {
-                        itemName = item.FileName; // Always show full name for dotfiles.
-                    }
-                    else
-                    {
-                        itemName = Path.GetFileNameWithoutExtension(item.FileName);
-                    }
-                }
-
+                string itemName = item.FileName;
                 string itemFileExtension = null;
                 if (item.FileName.Contains('.'))
                 {
@@ -2004,7 +2004,7 @@ namespace Files.ViewModels
                     LoadFileIcon = false,
                     IsHiddenItem = false,
                     Opacity = 1,
-                    ItemName = itemName,
+                    ItemNameRaw = itemName,
                     ItemDateModifiedReal = item.ModifiedDate,
                     ItemDateCreatedReal = item.CreatedDate,
                     ItemDateDeletedReal = item.RecycleDate,
@@ -2251,6 +2251,7 @@ namespace Files.ViewModels
                 Connection.RequestReceived -= Connection_RequestReceived;
             }
             UserSettingsService.OnSettingChangedEvent -= UserSettingsService_OnSettingChangedEvent;
+            FileTagsSettingsService.OnSettingImportedEvent -= FileTagsSettingsService_OnSettingImportedEvent;
             AppServiceConnectionHelper.ConnectionChanged -= AppServiceConnectionHelper_ConnectionChanged;
             DefaultIcons.Clear();
         }

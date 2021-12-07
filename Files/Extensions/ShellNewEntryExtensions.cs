@@ -68,7 +68,7 @@ namespace Files.Extensions
         public static async Task<FilesystemResult<BaseStorageFile>> Create(this ShellNewEntry shellEntry, BaseStorageFolder parentFolder, string fileName)
         {
             FilesystemResult<BaseStorageFile> createdFile = null;
-            if (!fileName.EndsWith(shellEntry.Extension))
+            if (!fileName.EndsWith(shellEntry.Extension, StringComparison.Ordinal))
             {
                 fileName += shellEntry.Extension;
             }
@@ -85,12 +85,8 @@ namespace Files.Extensions
             {
                 if (shellEntry.Data != null)
                 {
-                    //await FileIO.WriteBytesAsync(createdFile.Result, this.Data); // Calls unsupported OpenTransactedWriteAsync
-                    using (var fileStream = await createdFile.Result.OpenStreamForWriteAsync())
-                    {
-                        await fileStream.WriteAsync(shellEntry.Data, 0, shellEntry.Data.Length);
-                        await fileStream.FlushAsync();
-                    }
+                    //await FileIO.WriteBytesAsync(createdFile.Result, shellEntry.Data); // Calls unsupported OpenTransactedWriteAsync
+                    await createdFile.Result.WriteBytesAsync(shellEntry.Data);
                 }
             }
             return createdFile;

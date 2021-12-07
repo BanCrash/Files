@@ -73,11 +73,12 @@ namespace Files.ViewModels.Properties
                     ViewModel.ShortcutItemType = isApplication ? "PropertiesShortcutTypeApplication".GetLocalized() :
                         Item.IsLinkItem ? "PropertiesShortcutTypeLink".GetLocalized() : "PropertiesShortcutTypeFile".GetLocalized();
                     ViewModel.ShortcutItemPath = shortcutItem.TargetPath;
+                    ViewModel.IsShortcutItemPathReadOnly = shortcutItem.IsSymLink;
                     ViewModel.ShortcutItemWorkingDir = shortcutItem.WorkingDirectory;
-                    ViewModel.ShortcutItemWorkingDirVisibility = Item.IsLinkItem ? Visibility.Collapsed : Visibility.Visible;
+                    ViewModel.ShortcutItemWorkingDirVisibility = Item.IsLinkItem || shortcutItem.IsSymLink ? Visibility.Collapsed : Visibility.Visible;
                     ViewModel.ShortcutItemArguments = shortcutItem.Arguments;
-                    ViewModel.ShortcutItemArgumentsVisibility = Item.IsLinkItem ? Visibility.Collapsed : Visibility.Visible;
-                    ViewModel.IsSelectedItemShortcut = Item.FileExtension.Equals(".lnk", StringComparison.OrdinalIgnoreCase);
+                    ViewModel.ShortcutItemArgumentsVisibility = Item.IsLinkItem || shortcutItem.IsSymLink ? Visibility.Collapsed : Visibility.Visible;
+                    ViewModel.IsSelectedItemShortcut = ".lnk".Equals(Item.FileExtension, StringComparison.OrdinalIgnoreCase);
                     ViewModel.ShortcutItemOpenLinkCommand = new RelayCommand(async () =>
                     {
                         if (Item.IsLinkItem)
@@ -179,8 +180,8 @@ namespace Files.ViewModels.Properties
                 .Where(fileProp => !(fileProp.Value == null && fileProp.IsReadOnly))
                 .GroupBy(fileProp => fileProp.SectionResource)
                 .Select(group => new FilePropertySection(group) { Key = group.Key })
-                .OrderBy(group => group.Priority)
-                .Where(section => !section.All(fileProp => fileProp.Value == null));
+                .Where(section => !section.All(fileProp => fileProp.Value == null))
+                .OrderBy(group => group.Priority);
             ViewModel.PropertySections = new ObservableCollection<FilePropertySection>(query);
             ViewModel.FileProperties = new ObservableCollection<FileProperty>(list.Where(i => i.Value != null));
         }
@@ -356,7 +357,7 @@ namespace Files.ViewModels.Properties
         private async Task<string> GetHashForFileAsync(ListedItem fileItem, string nameOfAlg, CancellationToken token, IProgress<float> progress, IShellPage associatedInstance)
         {
             HashAlgorithmProvider algorithmProvider = HashAlgorithmProvider.OpenAlgorithm(nameOfAlg);
-            BaseStorageFile file = await StorageItemHelpers.ToStorageItem<BaseStorageFile>((fileItem as ShortcutItem)?.TargetPath ?? fileItem.ItemPath, associatedInstance);
+            BaseStorageFile file = await StorageHelpers.ToStorageItem<BaseStorageFile>((fileItem as ShortcutItem)?.TargetPath ?? fileItem.ItemPath, associatedInstance);
             if (file == null)
             {
                 return "";
@@ -414,7 +415,7 @@ namespace Files.ViewModels.Properties
             {
                 return "";
             }
-            return CryptographicBuffer.EncodeToHexString(hash.GetValueAndReset()).ToLower();
+            return CryptographicBuffer.EncodeToHexString(hash.GetValueAndReset()).ToLowerInvariant();
         }
     }
 }

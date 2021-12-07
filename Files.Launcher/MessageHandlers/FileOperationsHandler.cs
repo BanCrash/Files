@@ -252,7 +252,7 @@ namespace FilesFullTrust.MessageHandlers
                                         HRresult = (int)e.Result
                                     });
                                 };
-                                op.PostDeleteItem += (s, e) => UpdateFileTageDb(s, e, "delete");
+                                op.PostDeleteItem += (s, e) => UpdateFileTagsDb(s, e, "delete");
                                 op.FinishOperations += (s, e) => deleteTcs.TrySetResult(e.Result.Succeeded);
                                 op.UpdateProgress += (s, e) =>
                                 {
@@ -317,7 +317,7 @@ namespace FilesFullTrust.MessageHandlers
                                         HRresult = (int)e.Result
                                     });
                                 };
-                                op.PostRenameItem += (s, e) => UpdateFileTageDb(s, e, "rename");
+                                op.PostRenameItem += (s, e) => UpdateFileTagsDb(s, e, "rename");
                                 op.FinishOperations += (s, e) => renameTcs.TrySetResult(e.Result.Succeeded);
 
                                 try
@@ -384,7 +384,7 @@ namespace FilesFullTrust.MessageHandlers
                                         HRresult = (int)e.Result
                                     });
                                 };
-                                op.PostMoveItem += (s, e) => UpdateFileTageDb(s, e, "move");
+                                op.PostMoveItem += (s, e) => UpdateFileTagsDb(s, e, "move");
                                 op.FinishOperations += (s, e) => moveTcs.TrySetResult(e.Result.Succeeded);
                                 op.UpdateProgress += (s, e) =>
                                 {
@@ -459,7 +459,7 @@ namespace FilesFullTrust.MessageHandlers
                                         HRresult = (int)e.Result
                                     });
                                 };
-                                op.PostCopyItem += (s, e) => UpdateFileTageDb(s, e, "copy");
+                                op.PostCopyItem += (s, e) => UpdateFileTagsDb(s, e, "copy");
                                 op.FinishOperations += (s, e) => copyTcs.TrySetResult(e.Result.Succeeded);
                                 op.UpdateProgress += (s, e) =>
                                 {
@@ -502,19 +502,15 @@ namespace FilesFullTrust.MessageHandlers
                     try
                     {
                         var linkPath = (string)message["filepath"];
-                        if (linkPath.EndsWith(".lnk"))
+                        if (linkPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
                         {
                             using var link = new ShellLink(linkPath, LinkResolution.NoUIWithMsgPump, null, TimeSpan.FromMilliseconds(100));
                             await Win32API.SendMessageAsync(connection, new ValueSet()
                             {
-                                { "TargetPath", link.TargetPath },
-                                { "Arguments", link.Arguments },
-                                { "WorkingDirectory", link.WorkingDirectory },
-                                { "RunAsAdmin", link.RunAsAdministrator },
-                                { "IsFolder", !string.IsNullOrEmpty(link.TargetPath) && link.Target.IsFolder }
+                                { "ShortcutInfo", JsonConvert.SerializeObject(ShellFolderExtensions.GetShellLinkItem(link)) }
                             }, message.Get("RequestID", (string)null));
                         }
-                        else if (linkPath.EndsWith(".url"))
+                        else if (linkPath.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
                         {
                             var linkUrl = await Win32API.StartSTATask(() =>
                             {
@@ -525,11 +521,7 @@ namespace FilesFullTrust.MessageHandlers
                             });
                             await Win32API.SendMessageAsync(connection, new ValueSet()
                             {
-                                { "TargetPath", linkUrl },
-                                { "Arguments", null },
-                                { "WorkingDirectory", null },
-                                { "RunAsAdmin", false },
-                                { "IsFolder", false }
+                                { "ShortcutInfo", JsonConvert.SerializeObject(new ShellLinkItem() { TargetPath = linkUrl }) }
                             }, message.Get("RequestID", (string)null));
                         }
                     }
@@ -539,11 +531,7 @@ namespace FilesFullTrust.MessageHandlers
                         Program.Logger.Warn(ex, ex.Message);
                         await Win32API.SendMessageAsync(connection, new ValueSet()
                         {
-                            { "TargetPath", null },
-                            { "Arguments", null },
-                            { "WorkingDirectory", null },
-                            { "RunAsAdmin", false },
-                            { "IsFolder", false }
+                            { "ShortcutInfo", JsonConvert.SerializeObject(null) }
                         }, message.Get("RequestID", (string)null));
                     }
                     break;
@@ -556,7 +544,7 @@ namespace FilesFullTrust.MessageHandlers
                         var targetPath = (string)message["targetpath"];
 
                         bool success = false;
-                        if (linkSavePath.EndsWith(".lnk"))
+                        if (linkSavePath.EndsWith(".lnk", StringComparison.Ordinal))
                         {
                             var arguments = (string)message["arguments"];
                             var workingDirectory = (string)message["workingdir"];
@@ -566,7 +554,7 @@ namespace FilesFullTrust.MessageHandlers
                             newLink.SaveAs(linkSavePath); // Overwrite if exists
                             success = true;
                         }
-                        else if (linkSavePath.EndsWith(".url"))
+                        else if (linkSavePath.EndsWith(".url", StringComparison.Ordinal))
                         {
                             success = await Win32API.StartSTATask(() =>
                             {
@@ -705,7 +693,7 @@ namespace FilesFullTrust.MessageHandlers
             progressHandler.WaitForCompletion();
         }
 
-        private void UpdateFileTageDb(object sender, ShellFileOperations.ShellFileOpEventArgs e, string operationType)
+        private void UpdateFileTagsDb(object sender, ShellFileOperations.ShellFileOpEventArgs e, string operationType)
         {
             if (e.Result.Succeeded)
             {
@@ -755,7 +743,7 @@ namespace FilesFullTrust.MessageHandlers
                             {
                                 Extensions.IgnoreExceptions(() =>
                                 {
-                                    var subPath = t.FilePath.Replace(e.SourceItem.FileSystemPath, destination);
+                                    var subPath = t.FilePath.Replace(e.SourceItem.FileSystemPath, destination, StringComparison.Ordinal);
                                     dbInstance.SetTag(subPath, FileTagsHandler.GetFileFRN(subPath), t.Tag);
                                 }, Program.Logger);
                             });
@@ -766,7 +754,7 @@ namespace FilesFullTrust.MessageHandlers
                             {
                                 Extensions.IgnoreExceptions(() =>
                                 {
-                                    var subPath = t.FilePath.Replace(e.SourceItem.FileSystemPath, destination);
+                                    var subPath = t.FilePath.Replace(e.SourceItem.FileSystemPath, destination, StringComparison.Ordinal);
                                     dbInstance.UpdateTag(t.FilePath, FileTagsHandler.GetFileFRN(subPath), subPath);
                                 }, Program.Logger);
                             });
@@ -810,7 +798,7 @@ namespace FilesFullTrust.MessageHandlers
             {
                 get
                 {
-                    var ongoing = operations.ToList().Where(x => !x.Value.Canceled);
+                    var ongoing = operations.ToArray().Where(x => !x.Value.Canceled);
                     return ongoing.Any() ? (int)ongoing.Average(x => x.Value.Progress) : 0;
                 }
             }

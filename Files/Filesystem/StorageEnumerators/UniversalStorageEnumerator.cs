@@ -164,7 +164,7 @@ namespace Files.Filesystem.StorageEnumerators
                 return new ListedItem(folder.FolderRelativeId, dateReturnFormat)
                 {
                     PrimaryItemAttribute = StorageItemTypes.Folder,
-                    ItemName = folder.DisplayName,
+                    ItemNameRaw = folder.DisplayName,
                     ItemDateModifiedReal = basicProperties.DateModified,
                     ItemDateCreatedReal = folder.DateCreated,
                     ItemType = folder.DisplayType,
@@ -187,12 +187,9 @@ namespace Files.Filesystem.StorageEnumerators
             CancellationToken cancellationToken
         )
         {
-            IUserSettingsService userSettingsService = Ioc.Default.GetService<IUserSettingsService>();
-
             var basicProperties = await file.GetBasicPropertiesAsync();
             // Display name does not include extension
-            var itemName = string.IsNullOrEmpty(file.DisplayName) || userSettingsService.PreferencesSettingsService.ShowFileExtensions ?
-                file.Name : file.DisplayName;
+            var itemName = file.Name;
             var itemModifiedDate = basicProperties.DateModified;
             var itemCreatedDate = file.DateCreated;
             var itemPath = string.IsNullOrEmpty(file.Path) ? PathNormalization.Combine(currentStorageFolder.Path, file.Name) : file.Path;
@@ -207,7 +204,7 @@ namespace Files.Filesystem.StorageEnumerators
                 return null;
             }
 
-            if (file.Name.EndsWith(".lnk") || file.Name.EndsWith(".url"))
+            if (file.Name.EndsWith(".lnk", StringComparison.Ordinal) || file.Name.EndsWith(".url", StringComparison.Ordinal))
             {
                 // This shouldn't happen, StorageFile api does not support shortcuts
                 Debug.WriteLine("Something strange: StorageFile api returned a shortcut");
@@ -231,7 +228,7 @@ namespace Files.Filesystem.StorageEnumerators
                     Opacity = 1,
                     FileImage = null,
                     LoadFileIcon = itemThumbnailImgVis,
-                    ItemName = itemName,
+                    ItemNameRaw = itemName,
                     ItemDateModifiedReal = itemModifiedDate,
                     ItemDateCreatedReal = itemCreatedDate,
                     ItemType = itemType,

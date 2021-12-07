@@ -35,6 +35,7 @@ namespace Files.Controllers
 
         public TerminalController()
         {
+            Model = new TerminalFileModel();
         }
 
         public async Task InitializeAsync()
@@ -42,6 +43,10 @@ namespace Files.Controllers
             await LoadAsync();
             await GetInstalledTerminalsAsync();
             await StartWatchConfigChangeAsync();
+            CoreApplication.MainView.DispatcherQueue.TryEnqueue(() =>
+            {
+                ModelChanged?.Invoke(this);
+            });
         }
 
         private async Task LoadAsync()
@@ -76,10 +81,10 @@ namespace Files.Controllers
                 Model = JsonConvert.DeserializeObject<TerminalFileModel>(content);
                 if (Model == null)
                 {
-                    throw new JsonParsingNullException(JsonFileName);
+                    throw new ArgumentException($"{JsonFileName} is empty, regenerating...");
                 }
             }
-            catch (JsonParsingNullException)
+            catch (ArgumentException)
             {
                 Model = await GetDefaultTerminalFileModel();
                 SaveModel();
@@ -215,13 +220,6 @@ namespace Files.Controllers
             catch
             {
             }
-        }
-    }
-
-    public class JsonParsingNullException : Exception
-    {
-        public JsonParsingNullException(string jsonFileName) : base($"{jsonFileName} is empty, regenerating...")
-        {
         }
     }
 }

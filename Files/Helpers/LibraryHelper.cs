@@ -211,7 +211,7 @@ namespace Files.Helpers
                     }
                 },
                 TitleText = "FolderWidgetCreateNewLibraryDialogTitleText".GetLocalized(),
-                SubtitleText = "FolderWidgetCreateNewLibraryDialogSubtitleText".GetLocalized(),
+                SubtitleText = "SideBarCreateNewLibrary/Text".GetLocalized(),
                 PrimaryButtonText = "DialogCreateLibraryButtonText".GetLocalized(),
                 CloseButtonText = "Cancel".GetLocalized(),
                 PrimaryButtonAction = async (vm, e) =>
@@ -246,6 +246,6 @@ namespace Files.Helpers
             await dialog.ShowAsync();
         }
 
-        public static bool IsLibraryPath(string path) => !string.IsNullOrEmpty(path) && path.ToLower().EndsWith(ShellLibraryItem.EXTENSION);
+        public static bool IsLibraryPath(string path) => !string.IsNullOrEmpty(path) && path.EndsWith(ShellLibraryItem.EXTENSION, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -237,7 +237,7 @@ namespace Files.Views
                 ListedItem listedItem = new ListedItem(null)
                 {
                     ItemPath = locationItem.Path,
-                    ItemName = locationItem.Text,
+                    ItemNameRaw = locationItem.Text,
                     PrimaryItemAttribute = StorageItemTypes.Folder,
                     ItemType = "FileFolderListItem".GetLocalized(),
                 };
@@ -337,8 +337,6 @@ namespace Files.Views
             {
                 _ = VisualStateManager.GoToState(this, nameof(HorizontalTabViewCollapsed), true);
             }
-
-            App.LoadOtherStuffAsync().ContinueWith(t => App.Logger.Warn(t.Exception, "Error during LoadOtherStuffAsync()"), TaskContinuationOptions.OnlyOnFaulted);
         }
 
         private void ToggleFullScreenAccelerator(KeyboardAcceleratorInvokedEventArgs e)
