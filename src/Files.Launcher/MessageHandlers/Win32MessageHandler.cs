@@ -21,6 +21,7 @@ namespace FilesFullTrust.MessageHandlers
         {
             DetectIsSetAsDefaultFileManager();
             DetectIsSetAsOpenFileDialog();
+            DetectIsSavingRecentItemsEnabled();
             ApplicationData.Current.LocalSettings.Values["TEMP"] = Environment.GetEnvironmentVariable("TEMP");
         }
 
@@ -34,6 +35,12 @@ namespace FilesFullTrust.MessageHandlers
         {
             using var subkey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Classes\CLSID\{DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7}");
             ApplicationData.Current.LocalSettings.Values["IsSetAsOpenFileDialog"] = subkey?.GetValue(string.Empty) as string == "FilesOpenDialog class";
+        }
+
+        private void DetectIsSavingRecentItemsEnabled()
+        {
+            using var subkey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
+            ApplicationData.Current.LocalSettings.Values["IsSavingRecentItemsEnabled"] = Convert.ToInt32(subkey?.GetValue("Start_TrackDocs")) == 1;
         }
 
         public async Task ParseArgumentsAsync(PipeStream connection, Dictionary<string, object> message, string arguments)

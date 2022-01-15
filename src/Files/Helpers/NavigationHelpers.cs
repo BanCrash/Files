@@ -366,6 +366,7 @@ namespace Files.Helpers
             var opened = (FilesystemResult)false;
             bool isHiddenItem = NativeFileOperationsHelper.HasFileAttribute(path, System.IO.FileAttributes.Hidden);
             bool isShortcutItem = path.EndsWith(".lnk", StringComparison.Ordinal) || path.EndsWith(".url", StringComparison.Ordinal) || !string.IsNullOrEmpty(shortcutInfo.TargetPath);
+            bool isSavingRecentItemsEnabled = ApplicationData.Current.LocalSettings.Values.Get("IsSavingRecentItemsEnabled", true);
             if (isShortcutItem)
             {
                 if (string.IsNullOrEmpty(shortcutInfo.TargetPath))
@@ -380,7 +381,7 @@ namespace Files.Helpers
                         if (childFile != null)
                         {
                             // Add location to MRU List
-                            if (childFile.File is SystemStorageFile)
+                            if (isSavingRecentItemsEnabled && childFile.File is SystemStorageFile)
                             {
                                 var mostRecentlyUsed = Windows.Storage.AccessCache.StorageApplicationPermissions.MostRecentlyUsedList;
                                 mostRecentlyUsed.Add(await childFile.File.ToStorageFileAsync(), childFile.Path);
@@ -401,7 +402,7 @@ namespace Files.Helpers
                     .OnSuccess(async childFile =>
                     {
                         // Add location to MRU List
-                        if (childFile.File is SystemStorageFile)
+                        if (isSavingRecentItemsEnabled && childFile.File is SystemStorageFile)
                         {
                             var mostRecentlyUsed = Windows.Storage.AccessCache.StorageApplicationPermissions.MostRecentlyUsedList;
                             mostRecentlyUsed.Add(await childFile.File.ToStorageFileAsync(), childFile.Path);

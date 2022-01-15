@@ -400,6 +400,27 @@ namespace Files.ViewModels.SettingsViewModels
             }
         }
 
+        public bool IsSavingRecentItemsEnabled
+        {
+            get => UserSettingsService.PreferencesSettingsService.IsSavingRecentItemsEnabled;
+            set
+            {
+                if (value != UserSettingsService.PreferencesSettingsService.IsSavingRecentItemsEnabled)
+                {
+                    UserSettingsService.PreferencesSettingsService.IsSavingRecentItemsEnabled = value;
+
+                    if (!UserSettingsService.PreferencesSettingsService.IsSavingRecentItemsEnabled)
+                    {
+                        var mru = StorageApplicationPermissions.MostRecentlyUsedList;
+                        mru.Clear();
+                        UserSettingsService.WidgetsSettingsService.ShowRecentFilesWidget = false;
+                    }
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private async Task LaunchTerminalsConfigFile()
         {
             var configFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appdata:///local/settings/terminal.json"));

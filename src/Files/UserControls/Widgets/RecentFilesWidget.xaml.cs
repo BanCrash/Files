@@ -42,7 +42,7 @@ namespace Files.UserControls.Widgets
 
         public string WidgetHeader => "RecentFiles".GetLocalized();
 
-        public bool IsWidgetSettingEnabled => UserSettingsService.WidgetsSettingsService.ShowRecentFilesWidget;
+        public bool IsWidgetSettingEnabled => UserSettingsService.WidgetsSettingsService.ShowRecentFilesWidget && ApplicationData.Current.LocalSettings.Values.Get("IsSavingRecentItemsEnabled", true);
 
         public RecentFilesWidget()
         {

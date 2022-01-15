@@ -17,6 +17,7 @@ namespace Files.Services.Implementation
             {
                 case nameof(ShowConfirmDeleteDialog):
                 case nameof(OpenFoldersInNewTab):
+                case nameof(IsSavingRecentItemsEnabled):
                 case nameof(ShowFileExtensions):
                 case nameof(AreHiddenItemsVisible):
                 case nameof(AreSystemItemsHidden):
@@ -48,6 +49,12 @@ namespace Files.Services.Implementation
         public bool OpenFoldersInNewTab
         {
             get => Get(false);
+            set => Set(value);
+        }
+
+        public bool IsSavingRecentItemsEnabled
+        {
+            get => Get(true);
             set => Set(value);
         }
 

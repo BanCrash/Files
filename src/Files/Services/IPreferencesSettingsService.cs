@@ -16,6 +16,11 @@ namespace Files.Services
         bool OpenFoldersInNewTab { get; set; }
 
         /// <summary>
+        /// Enables saving recent items for quick access and the recent items widget
+        /// </summary>
+        bool IsSavingRecentItemsEnabled { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether or not file extensions should be visible.
         /// </summary>
         bool ShowFileExtensions { get; set; }
